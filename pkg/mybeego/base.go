@@ -1,14 +1,14 @@
 package mybeego
 
 import (
-	"strconv"
 	"encoding/json"
 	"fmt"
-
-	"github.com/tiptok/gocomm/time"
-	"github.com/tiptok/gocomm/pkg/redis"
+	"github.com/tiptok/gocomm/pkg/log"
+	"strconv"
 
 	"github.com/astaxie/beego"
+	"github.com/tiptok/gocomm/pkg/redis"
+	"github.com/tiptok/gocomm/time"
 )
 
 // BaseController
@@ -18,6 +18,10 @@ type BaseController struct {
 	JSONBody    map[string]interface{}
 	ByteBody    []byte
 	RequestHead *RequestHead
+}
+
+func assertCompleteImplement (){
+	var _ beego.ControllerInterface = (*BaseController)(nil)
 }
 
 func (this *BaseController) Options() {
@@ -79,7 +83,7 @@ func (this *BaseController) Prepare() {
 		this.RequestHead.LoginIp = this.Ctx.Input.IP()
 		this.RequestHead.Jwt = this.Ctx.Input.Header("jwt")
 		this.RequestHead.SetRequestId(fmt.Sprintf("%v.%v.%s",this.RequestHead.Uid,time.GetTimeByYyyymmddhhmmss(),this.Ctx.Request.URL))
-		beego.Info(fmt.Sprintf("====>Recv data from uid(%d) client:\nHeadData: %s\nRequestId:%s BodyData: %s", this.RequestHead.Uid, this.Ctx.Request.Header,this.RequestHead.GetRequestId(), string(this.ByteBody)))
+		log.Info(fmt.Sprintf("====>Recv data from uid(%d) client:\nHeadData: %s\nRequestId:%s BodyData: %s", this.RequestHead.Uid, this.Ctx.Request.Header,this.RequestHead.GetRequestId(), string(this.ByteBody)))
 	}
 	key := SWITCH_INFO_KEY
 	str := ""
@@ -95,7 +99,7 @@ func (this *BaseController) Prepare() {
 		var msg *Message
 		msg = NewMessage(3)
 		msg.Errmsg = switchInfo.MessageBody
-		beego.Info(msg.Errmsg)
+		log.Info(msg.Errmsg)
 		this.Data["json"] = msg
 		this.ServeJSON()
 		return
@@ -117,9 +121,9 @@ func (this *BaseController) Finish() {
 	strByte, _ := json.Marshal(this.Data["json"])
 	length := len(strByte)
 	if length > 5000 {
-		beego.Info(fmt.Sprintf("<====Send to uid(%d) client: %d byte\nRequestId:%s RspBodyData: %s......", this.RequestHead.Uid, length,this.RequestHead.GetRequestId(), string(strByte[:5000])))
+		log.Info(fmt.Sprintf("<====Send to uid(%d) client: %d byte\nRequestId:%s RspBodyData: %s......", this.RequestHead.Uid, length,this.RequestHead.GetRequestId(), string(strByte[:5000])))
 	} else {
-		beego.Info(fmt.Sprintf("<====Send to uid(%d) client: %d byte\nRequestId:%s RspBodyData: %s", this.RequestHead.Uid, length,this.RequestHead.GetRequestId(), string(strByte)))
+		log.Info(fmt.Sprintf("<====Send to uid(%d) client: %d byte\nRequestId:%s RspBodyData: %s", this.RequestHead.Uid, length,this.RequestHead.GetRequestId(), string(strByte)))
 	}
 }
 
@@ -139,7 +143,7 @@ func (this *BaseControllerCallBack) Prepare() {
 	}
 
 	if this.Ctx.Input.RequestBody != nil {
-		beego.Info("RecvHead:", string(this.Ctx.Input.Header("Authorization")))
+		log.Info("RecvHead:", string(this.Ctx.Input.Header("Authorization")))
 		this.ByteBody = this.Ctx.Input.RequestBody
 	}
 }
@@ -151,5 +155,5 @@ func (this *BaseControllerCallBack) Resp(msg *Message) {
 
 func (this *BaseControllerCallBack) Finish() {
 	strByte, _ := json.Marshal(this.Data["json"])
-	beego.Debug("<====Send to client:\n", string(strByte))
+	log.Debug("<====Send to client:\n", string(strByte))
 }

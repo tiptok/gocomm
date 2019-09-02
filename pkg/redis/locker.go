@@ -45,7 +45,7 @@ func (l *Mutex)Lock()( bool){
 	if l.lock{
 		return l.lock
 	}
-	l.conn =RedisClient.Get()
+	l.conn =redisPool.Get()
 	resourceKey :=l.Key()
 	if result, err := l.conn.Do("SET", resourceKey,l.resource,"NX","EX", l.timeOut); err != nil || result==nil{
 		return l.lock
