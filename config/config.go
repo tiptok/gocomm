@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/micro/go-config"
 	"github.com/micro/go-config/source/grpc"
+	"log"
 	"sync"
 )
 
@@ -32,11 +33,11 @@ func Init(addr, name string) {
 			for {
 				v, err := watcher.Next()
 				if err != nil {
-					log.Log(err)
+					log.Println(err)
 					continue
 				}
 
-				log.Logf("[Init] file change: %v", string(v.Bytes()))
+				log.Printf("[Init] file change: %v", string(v.Bytes()))
 			}
 		}()
 	})

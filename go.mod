@@ -4,7 +4,9 @@ go 1.12
 
 require (
 	github.com/astaxie/beego v1.10.0
+	github.com/garyburd/redigo v1.6.0
 	github.com/google/go-cmp v0.2.0
+	github.com/gorilla/websocket v1.4.1
 	github.com/micro/go-config v1.1.1-0.20190428084130-bb7d57b8c5fa
 	github.com/micro/go-log v0.1.0
 
