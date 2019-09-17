@@ -1,7 +1,7 @@
 package task
 
 import (
-	"gocomm/common"
+	"github.com/tiptok/gocomm/common"
 	"log"
 	"testing"
 	"time"

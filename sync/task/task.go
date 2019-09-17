@@ -3,7 +3,7 @@ package task
 import (
 	"context"
 
-	"gocomm/syncsemaphore"
+	"github.com/tiptok/gocomm/sync/signal/semaphore"
 )
 
 // OnSuccess executes g() after f() returns nil.
