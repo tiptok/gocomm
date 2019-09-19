@@ -21,7 +21,7 @@ func assertViperImplementIconfig(){
 }
 
 type ViperConfig struct {
-	*viper.Viper
+	viper *viper.Viper
 }
 
 func(v *ViperConfig)Int(k string)(value int,err error){
@@ -31,7 +31,7 @@ func(v *ViperConfig)Int(k string)(value int,err error){
 			return
 		}
 	}()
-	value = v.GetInt(k)
+	value = v.viper.GetInt(k)
 	return
 }
 func(v *ViperConfig)Int64(k string)(value int64,err error){
@@ -41,30 +41,46 @@ func(v *ViperConfig)Int64(k string)(value int64,err error){
 			return
 		}
 	}()
-	value = v.GetInt64(k)
+	value = v.viper.GetInt64(k)
 	return 0,nil
 }
 func(v *ViperConfig)String(k string)string{
-	return v.String(k)
+	return v.viper.GetString(k)
 }
 func(v *ViperConfig)Strings(k string)[]string{
-	return v.Strings(k)
+	return v.viper.GetStringSlice(k)
 }
-func(v *ViperConfig)Bool(k string)(bool,error){
-	return v.Bool(k)
+func(v *ViperConfig)Bool(k string)(b bool,err error){
+	defer func(){
+		if p:=recover();p!=nil{
+			err = fmt.Errorf("%v",p)
+			return
+		}
+	}()
+	b = v.viper.GetBool(k)
+	return
 }
-func(v *ViperConfig)Float(k string)(float64,error){
-	return v.Float(k)
+func(v *ViperConfig)Float(k string)(f float64,err error){
+	defer func(){
+		if p:=recover();p!=nil{
+			err = fmt.Errorf("%v",p)
+			return
+		}
+	}()
+	f = v.viper.GetFloat64(k)
+	return
 }
 
 
 var Default IConfig
 
-func NewViperConfig(configType,configFile string){
+func NewViperConfig(configType,configFile string)IConfig{
 	v := viper.New()
 	v.SetConfigType(configType)
 	v.SetConfigFile(configFile)
+	v.ReadInConfig()
 	Default = &ViperConfig{v}
+	return Default
 }
 
 

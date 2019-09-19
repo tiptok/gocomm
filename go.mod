@@ -11,7 +11,6 @@ require (
 	github.com/google/go-cmp v0.2.0
 	github.com/gorilla/websocket v1.4.1
 	github.com/mattn/go-sqlite3 v1.11.0 // indirect
-	github.com/micro/go-config v1.1.1-0.20190428084130-bb7d57b8c5fa
 
 	github.com/opentracing-contrib/go-stdlib v0.0.0-20190519235532-cf7a6c988dc9
 	github.com/opentracing/opentracing-go v1.1.0

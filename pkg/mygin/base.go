@@ -9,13 +9,13 @@ import (
 	"github.com/tiptok/gocomm/common"
 )
 
-type BaseGinController struct {
+type BaseController struct {
 
 }
 
-func(this *BaseGinController)JWTMiddleware()gin.HandlerFunc{
+func(this *BaseController)JWTMiddleware()gin.HandlerFunc{
 	return func(c *gin.Context){
-		token := c.Query("token")
+		token := c.GetHeader("token")
 		code := http.StatusOK
 		if token == "" {
 			code = http.StatusUnauthorized
@@ -28,7 +28,7 @@ func(this *BaseGinController)JWTMiddleware()gin.HandlerFunc{
 			}
 		}
 		if code != http.StatusOK {
-			this.ResponseJson(c,NewMessage(1).SetHttpCode(code))
+			this.Resp(c,NewMessage(1).SetHttpCode(code))
 			return
 		}
 		c.Next()
@@ -36,14 +36,14 @@ func(this *BaseGinController)JWTMiddleware()gin.HandlerFunc{
 }
 
 //group.Use(Prepare)
-func(this *BaseGinController)Prepare(c *gin.Context){
+func(this *BaseController)Prepare(c *gin.Context){
 	this.Secure(c)
 	this.NoCache(c)
 }
 
 // NoCache is a middleware function that appends headers
 // to prevent the client from caching the HTTP response.
-func (this *BaseGinController)NoCache(c *gin.Context) {
+func (this *BaseController)NoCache(c *gin.Context) {
 	c.Header("Cache-Control", "no-cache, no-store, max-age=0, must-revalidate, value")
 	c.Header("Expires", "Thu, 01 Jan 1970 00:00:00 GMT")
 	c.Header("Last-Modified", time.Now().UTC().Format(http.TimeFormat))
@@ -52,7 +52,7 @@ func (this *BaseGinController)NoCache(c *gin.Context) {
 
 // Secure is a middleware function that appends security
 // and resource access headers.
-func (this *BaseGinController)Secure(c *gin.Context) {
+func (this *BaseController)Secure(c *gin.Context) {
 	c.Header("Access-Control-Allow-Origin", "*")
 	c.Header("X-Frame-Options", "DENY")
 	c.Header("X-Content-Type-Options", "nosniff")
@@ -67,7 +67,7 @@ func (this *BaseGinController)Secure(c *gin.Context) {
 	// c.Header("Content-Security-Policy", "script-src 'self' https://cdnjs.cloudflare.com")
 }
 
-func(this *BaseGinController)GetRequestHead(c *gin.Context)*RequestHead{
+func(this *BaseController)GetRequestHead(c *gin.Context)*RequestHead{
 	requestHead := &RequestHead{}
 	requestHead.Token = c.Query("token")
 	requestHead.Version = c.Query("version")
@@ -86,7 +86,7 @@ func(this *BaseGinController)GetRequestHead(c *gin.Context)*RequestHead{
 }
 
 
-func(this *BaseGinController)ResponseJson(c *gin.Context,rsp *Message){
+func(this *BaseController)Resp(c *gin.Context,rsp *Message){
 	c.JSON(rsp.HttpCode,rsp)
 	c.Abort()
 }
