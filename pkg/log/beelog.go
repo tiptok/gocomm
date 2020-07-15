@@ -12,15 +12,15 @@ type beegoLog struct {
 	log *logs.BeeLogger
 }
 
-func newbeelog(conf config.Logger)Log{
+func newbeelog(conf config.Logger) Log {
 	filename := `{"filename":"` + filepath.ToSlash(conf.Filename) + `"}`
 
-	l :=&beegoLog{
-		log:logs.GetBeeLogger(),
+	l := &beegoLog{
+		log: logs.GetBeeLogger(),
 	}
-	l.log.SetLogger(logs.AdapterFile,filename)
-	ilv,err :=strconv.Atoi(conf.Level)
-	if err!=nil{
+	l.log.SetLogger(logs.AdapterFile, filename)
+	ilv, err := strconv.Atoi(conf.Level)
+	if err != nil {
 		ilv = logs.LevelDebug
 	}
 	l.log.SetLevel(ilv)
@@ -29,27 +29,27 @@ func newbeelog(conf config.Logger)Log{
 	return l
 }
 
-func(this *beegoLog)Debug(args ...interface{}){
+func (this *beegoLog) Debug(args ...interface{}) {
 	//this.log.Debug(args...)
 	beego.Debug(args...)
 }
 
-func(this *beegoLog)Info(args ...interface{}){
+func (this *beegoLog) Info(args ...interface{}) {
 	beego.Info(args...)
 }
 
-func(this *beegoLog)Warn(args ...interface{}){
+func (this *beegoLog) Warn(args ...interface{}) {
 	beego.Warn(args...)
 }
 
-func(this *beegoLog)Error(args ...interface{}){
+func (this *beegoLog) Error(args ...interface{}) {
 	beego.Error(args...)
 }
 
-func(this *beegoLog)Panic(args ...interface{}){
+func (this *beegoLog) Panic(args ...interface{}) {
 	beego.Error(args...)
 }
 
-func(this *beegoLog)Fatal(args ...interface{}){
+func (this *beegoLog) Fatal(args ...interface{}) {
 	beego.Error(args...)
 }

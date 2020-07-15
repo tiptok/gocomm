@@ -20,7 +20,7 @@ type BaseController struct {
 	RequestHead *RequestHead
 }
 
-func assertCompleteImplement (){
+func assertCompleteImplement() {
 	var _ beego.ControllerInterface = (*BaseController)(nil)
 }
 
@@ -82,13 +82,13 @@ func (this *BaseController) Prepare() {
 		this.RequestHead.AppId, _ = strconv.Atoi(this.Ctx.Input.Header("appid"))
 		this.RequestHead.LoginIp = this.Ctx.Input.IP()
 		this.RequestHead.Jwt = this.Ctx.Input.Header("jwt")
-		this.RequestHead.SetRequestId(fmt.Sprintf("%v.%v.%s",this.RequestHead.Uid,time.GetTimeByYyyymmddhhmmss(),this.Ctx.Request.URL))
-		log.Info(fmt.Sprintf("====>Recv data from uid(%d) client:\nHeadData: %s\nRequestId:%s BodyData: %s", this.RequestHead.Uid, this.Ctx.Request.Header,this.RequestHead.GetRequestId(), string(this.ByteBody)))
+		this.RequestHead.SetRequestId(fmt.Sprintf("%v.%v.%s", this.RequestHead.Uid, xtime.GetTimeByYyyymmddhhmmss(), this.Ctx.Request.URL))
+		log.Info(fmt.Sprintf("====>Recv data from uid(%d) client:\nHeadData: %s\nRequestId:%s BodyData: %s", this.RequestHead.Uid, this.Ctx.Request.Header, this.RequestHead.GetRequestId(), string(this.ByteBody)))
 	}
 	key := SWITCH_INFO_KEY
 	str := ""
 	switchInfo := &TotalSwitchStr{}
-	if str,_ = redis.Get(key); str == "" {
+	if str, _ = redis.Get(key); str == "" {
 		switchInfo.TotalSwitch = TOTAL_SWITCH_ON
 		switchInfo.MessageBody = "正常运行"
 		redis.Set(key, switchInfo, redis.INFINITE)
@@ -121,9 +121,9 @@ func (this *BaseController) Finish() {
 	strByte, _ := json.Marshal(this.Data["json"])
 	length := len(strByte)
 	if length > 5000 {
-		log.Info(fmt.Sprintf("<====Send to uid(%d) client: %d byte\nRequestId:%s RspBodyData: %s......", this.RequestHead.Uid, length,this.RequestHead.GetRequestId(), string(strByte[:5000])))
+		log.Info(fmt.Sprintf("<====Send to uid(%d) client: %d byte\nRequestId:%s RspBodyData: %s......", this.RequestHead.Uid, length, this.RequestHead.GetRequestId(), string(strByte[:5000])))
 	} else {
-		log.Info(fmt.Sprintf("<====Send to uid(%d) client: %d byte\nRequestId:%s RspBodyData: %s", this.RequestHead.Uid, length,this.RequestHead.GetRequestId(), string(strByte)))
+		log.Info(fmt.Sprintf("<====Send to uid(%d) client: %d byte\nRequestId:%s RspBodyData: %s", this.RequestHead.Uid, length, this.RequestHead.GetRequestId(), string(strByte)))
 	}
 }
 

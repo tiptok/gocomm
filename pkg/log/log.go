@@ -2,7 +2,7 @@ package log
 
 import "github.com/tiptok/gocomm/config"
 
-type Log interface{
+type Log interface {
 	Debug(args ...interface{})
 	Info(args ...interface{})
 	Warn(args ...interface{})
@@ -11,28 +11,28 @@ type Log interface{
 	Fatal(args ...interface{})
 }
 
-var(
-	DefaultLog Log
+var (
+	DefaultLog Log = newConsoleLog()
 )
 
-func InitLog(conf config.Logger){
-	DefaultLog= newbeelog(conf)
+func InitLog(conf config.Logger) {
+	DefaultLog = newbeelog(conf)
 }
-func Debug(args ...interface{}){
+func Debug(args ...interface{}) {
 	DefaultLog.Debug(args...)
 }
-func Info(args ...interface{}){
+func Info(args ...interface{}) {
 	DefaultLog.Info(args...)
 }
-func Warn(args ...interface{}){
+func Warn(args ...interface{}) {
 	DefaultLog.Warn(args...)
 }
-func Error(args ...interface{}){
+func Error(args ...interface{}) {
 	DefaultLog.Error(args...)
 }
-func Panic(args ...interface{}){
+func Panic(args ...interface{}) {
 	DefaultLog.Panic(args...)
 }
-func Fatal(args ...interface{}){
+func Fatal(args ...interface{}) {
 	DefaultLog.Fatal(args...)
 }
