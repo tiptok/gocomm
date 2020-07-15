@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/tiptok/gocomm/pkg/log"
+	"github.com/tiptok/gocomm/xtime"
 	"strconv"
+	"time"
 
 	"github.com/astaxie/beego"
 	"github.com/tiptok/gocomm/pkg/redis"
-	"github.com/tiptok/gocomm/time"
 )
 
 // BaseController
@@ -82,7 +83,7 @@ func (this *BaseController) Prepare() {
 		this.RequestHead.AppId, _ = strconv.Atoi(this.Ctx.Input.Header("appid"))
 		this.RequestHead.LoginIp = this.Ctx.Input.IP()
 		this.RequestHead.Jwt = this.Ctx.Input.Header("jwt")
-		this.RequestHead.SetRequestId(fmt.Sprintf("%v.%v.%s", this.RequestHead.Uid, xtime.GetTimeByYyyymmddhhmmss(), this.Ctx.Request.URL))
+		this.RequestHead.SetRequestId(fmt.Sprintf("%v.%v.%s", this.RequestHead.Uid, time.Now().Format(xtime.YYYYMMDDHHMMSS), this.Ctx.Request.URL))
 		log.Info(fmt.Sprintf("====>Recv data from uid(%d) client:\nHeadData: %s\nRequestId:%s BodyData: %s", this.RequestHead.Uid, this.Ctx.Request.Header, this.RequestHead.GetRequestId(), string(this.ByteBody)))
 	}
 	key := SWITCH_INFO_KEY
