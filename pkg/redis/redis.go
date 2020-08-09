@@ -41,6 +41,10 @@ func InitWithDb(size int, addr, password, db string) error {
 	return err
 }
 
+func GetRedisPool() *redis.Pool {
+	return redisPool
+}
+
 func Init(conf config.Redis) error {
 	redisPool = &redis.Pool{
 		MaxIdle:     conf.MaxIdle,

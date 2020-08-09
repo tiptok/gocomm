@@ -14,6 +14,7 @@ require (
 	github.com/gorilla/websocket v1.4.1
 	github.com/lib/pq v1.7.0 // indirect
 	github.com/mattn/go-sqlite3 v1.11.0 // indirect
+	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
 	github.com/opentracing-contrib/go-stdlib v0.0.0-20190519235532-cf7a6c988dc9
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/spf13/viper v1.4.0
