@@ -18,6 +18,8 @@ const (
 	allReload
 )
 
+// TODO：Redis 实现分布式 hash一致性,根据数据hash值,动态获取集群中指定机器来加载缓存
+// 参考 go-zero\core\stores\cache
 type Cache interface {
 	// get cached value by key.
 	Get(key string, obj interface{}) (*Item, error)

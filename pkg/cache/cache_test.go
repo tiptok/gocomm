@@ -67,7 +67,7 @@ func TestConcurrent(t *testing.T) {
 func doConcurrent() {
 	key := GetKey("partner", "order", "statics", 1)
 	var wg sync.WaitGroup
-	for i := 1; i <= 1; i++ {
+	for i := 1; i <= 10; i++ {
 		go func(index int) {
 			wg.Add(1)
 			defer wg.Done()
@@ -77,8 +77,6 @@ func doConcurrent() {
 		}(i)
 	}
 	wg.Wait()
-	fmt.Println()
-	fmt.Println()
 }
 
 func newTestStruct() (interface{}, error) {
@@ -126,7 +124,7 @@ func TestMultiLevelCacheNew_Delete(t *testing.T) {
 	if err := GetObject(key, target, 100, newTestStruct); err != nil {
 		t.Fatal(err)
 	}
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Second * 20)
 	if err := Delete(key); err != nil {
 		t.Fatal(err)
 	}
