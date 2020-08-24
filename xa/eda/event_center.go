@@ -75,12 +75,12 @@ func (r *DefaultRegisterCenter) DeregisterSubscribe(event Event, sub SubscriberH
 			fmt.Println(e)
 		}
 	}()
+	//defer fmt.Println("unlock:",event.EventType())
+	//fmt.Println("lock:",event.EventType())
 	key := reflect.ValueOf(sub).Elem().String()
 	if handleList, ok := r.subscribers[event.EventType()]; ok {
-
 		if _, ok := handleList[key]; ok {
 			delete(handleList, key)
-			return nil
 		}
 		if len(handleList) == 0 {
 			delete(r.subscribers, event.EventType())

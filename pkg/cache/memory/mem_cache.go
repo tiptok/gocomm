@@ -37,7 +37,7 @@ func (c *memcache) Get(k string, obj interface{}) (*Item, error) {
 		return nil, nil
 	}
 	item := tmp.(*Item)
-	obj = item.Object
+	//obj = item.Object
 	//fmt.Println("memcache get cache item:",item.String())
 	return item, nil
 }
