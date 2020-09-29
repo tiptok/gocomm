@@ -2,6 +2,8 @@ package common
 
 import (
 	"bytes"
+	"encoding/gob"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"time"
@@ -48,4 +50,34 @@ func RandomStringWithChars(l int, chars string) string {
 		rsp.WriteByte(chars[rand.Intn(lenChars)])
 	}
 	return rsp.String()
+}
+
+//GobModelTransform 模型转换
+func GobModelTransform(dst interface{}, src interface{}) error {
+	var data bytes.Buffer
+	enc := gob.NewEncoder(&data)
+	if err := enc.Encode(src); err != nil {
+		return err
+	}
+	dec := gob.NewDecoder(&data)
+	if err := dec.Decode(dst); err != nil {
+		return err
+	}
+	return nil
+}
+
+func JsonUnmarshal(jsonData string, v interface{}) {
+	if len(jsonData) == 0 {
+		return
+	}
+	if e := json.Unmarshal([]byte(jsonData), v); e != nil {
+
+	}
+}
+
+func JsonAssertString(v interface{}) string {
+	if data, e := json.Marshal(v); e == nil {
+		return string(data)
+	}
+	return ""
 }
