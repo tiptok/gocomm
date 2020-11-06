@@ -1,12 +1,9 @@
 package common
 
 import (
-	"time"
-	"github.com/tiptok/gocomm/pkg/log"
-
 	"github.com/dgrijalva/jwt-go"
+	"time"
 )
-
 
 type UserTokenClaims struct {
 	Username string `json:"username"`
@@ -24,7 +21,7 @@ func ParseJWTToken(token string) (*UserTokenClaims, error) {
 
 	if tokenClaims != nil {
 		if claim, ok := tokenClaims.Claims.(*UserTokenClaims); ok && tokenClaims.Valid {
-			log.Info("ParseJWTToken:%s -> %v", token, claim)
+			//log.Info("ParseJWTToken:%s -> %v", token, claim)
 			return claim, nil
 		}
 	}

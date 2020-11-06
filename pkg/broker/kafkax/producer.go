@@ -92,6 +92,9 @@ func (dispatcher *MessageDispatcher) Dispatch() {
 				dispatcher.notifications <- struct{}{}
 			}(dispatcher)
 		case <-dispatcher.notifications:
+			if dispatcher.messageRepository == nil {
+				continue
+			}
 			messages, _ := dispatcher.messageRepository.FindNoPublishedStoredMessages()
 			var messagesInProcessIds []int64
 			for i := range messages {

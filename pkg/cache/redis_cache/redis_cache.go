@@ -38,7 +38,7 @@ func (c *RedisCache) Get(key string, obj interface{}) (*Item, error) {
 
 func (c *RedisCache) Set(k string, it *Item) error {
 	//fmt.Println("rediscache set cache item:",it.String())
-	return RedisSetString(k, string(it.Data()), it.TTL*4, c.pool)
+	return RedisSetString(k, string(it.Data()), it.TTL, c.pool)
 }
 
 func (c *RedisCache) Delete(keyPattern string) error {

@@ -51,7 +51,7 @@ func (query *Query) SetLimit() *Query {
 	}
 	if limit, ok := query.queryOptions["limit"]; ok {
 		limit, _ := strconv.ParseInt(fmt.Sprintf("%v", limit), 10, 64)
-		if limit > -1 {
+		if limit > 0 {
 			query.Limit(int(limit))
 		} else {
 			query.Limit(20)
