@@ -5,7 +5,7 @@ import (
 	"github.com/astaxie/beego/logs"
 	"github.com/tiptok/gocomm/config"
 	"path/filepath"
-	"strconv"
+	"strings"
 )
 
 type beegoLog struct {
@@ -19,10 +19,7 @@ func newbeelog(conf config.Logger) Log {
 		log: logs.GetBeeLogger(),
 	}
 	l.log.SetLogger(logs.AdapterFile, filename)
-	ilv, err := strconv.Atoi(conf.Level)
-	if err != nil {
-		ilv = logs.LevelDebug
-	}
+	ilv := beegoLogLevelAdapter(conf.Level)
 	l.log.SetLevel(ilv)
 	l.log.EnableFuncCallDepth(true)
 	l.log.SetLogFuncCallDepth(6)
@@ -52,4 +49,18 @@ func (this *beegoLog) Panic(args ...interface{}) {
 
 func (this *beegoLog) Fatal(args ...interface{}) {
 	beego.Error(args...)
+}
+
+func beegoLogLevelAdapter(logLevel string) int {
+	switch strings.ToUpper(logLevel) {
+	case "DEBUG":
+		return logs.LevelDebug
+	case "INFO":
+		return logs.LevelInformational
+	case "WARN":
+		return logs.LevelWarning
+	case "ERROR":
+		return logs.LevelError
+	}
+	return logs.LevelDebug
 }

@@ -1,12 +1,13 @@
 package cache
 
 const (
-	DefaultObjectExpire = 60 * 2 //60 * 60 * 24 *7
+	DefaultObjectExpire = 60 * 60 * 24 * 7
 )
 
 type (
 	CachedRepository struct {
 		mlCache *MultiLevelCache
+		option  *QueryOptions
 	}
 	QueryOptions struct {
 		ObjectToExpire int
@@ -15,9 +16,11 @@ type (
 	QueryOption func(options *QueryOptions) *QueryOptions
 )
 
-func NewCachedRepository(c *MultiLevelCache) *CachedRepository {
+func NewCachedRepository(c *MultiLevelCache, options ...QueryOption) *CachedRepository {
+	option := NewQueryOptions(options...)
 	return &CachedRepository{
 		mlCache: c,
+		option:  option,
 	}
 }
 
@@ -35,7 +38,7 @@ func (c *CachedRepository) QueryCache(key string, v interface{}, queryFunc LoadF
 		}
 		return nil
 	}
-	return c.mlCache.GetObject(key, v, DefaultObjectExpire, queryFunc)
+	return c.mlCache.GetObject(key, v, option.ObjectToExpire, queryFunc)
 }
 
 func (c *CachedRepository) Query(queryFunc LoadFunc, deleteKeys ...string) (interface{}, error) {
@@ -61,8 +64,15 @@ func WithNoCacheFlag() QueryOption {
 		return options
 	}
 }
+func WithObjectToExpire(expire int) QueryOption {
+	return func(options *QueryOptions) *QueryOptions {
+		options.ObjectToExpire = expire
+		return options
+	}
+}
 func NewQueryOptions(options ...QueryOption) *QueryOptions {
 	option := new(QueryOptions)
+	option.ObjectToExpire = DefaultObjectExpire
 	for i := range options {
 		options[i](option)
 	}
