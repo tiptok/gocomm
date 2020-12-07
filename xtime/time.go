@@ -1,6 +1,7 @@
 package xtime
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -43,4 +44,8 @@ func (o XTime) MonthBefore(x int) XTime {
 //昨天
 func (o XTime) Yesterday() XTime {
 	return o.DayBefore(-1)
+}
+
+func ReprOfDuration(duration time.Duration) string {
+	return fmt.Sprintf("%.1fms", float32(duration)/float32(time.Millisecond))
 }

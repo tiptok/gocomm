@@ -7,7 +7,7 @@ import (
 
 // Periodic is a task that runs periodically.
 type Periodic struct {
-	// Interval of the task being run
+	// Interval of the task being run 执行任务的周期时间
 	Interval time.Duration
 	// Execute is the task function
 	Execute func() error
@@ -17,10 +17,10 @@ type Periodic struct {
 	running bool
 }
 
-func NewPeriodic(interval time.Duration,exec func()error)*Periodic{
+func NewPeriodic(interval time.Duration, exec func() error) *Periodic {
 	return &Periodic{
-		Interval:interval,
-		Execute:exec,
+		Interval: interval,
+		Execute:  exec,
 	}
 }
 
