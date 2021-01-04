@@ -14,10 +14,10 @@ import (
 type KafkaMessageProducer struct {
 	KafkaHosts string
 	LogInfo    models.LogInfo
+	producer   sarama.SyncProducer
 }
 
-// 同步发送
-func (engine *KafkaMessageProducer) Publish(messages []*models.Message, option map[string]interface{}) (*models.MessagePublishResult, error) {
+func NewKafkaMessageProducer(host string) (*KafkaMessageProducer, error) {
 	config := sarama.NewConfig()
 	config.Producer.Return.Successes = true
 	config.Producer.Return.Errors = true
@@ -25,16 +25,36 @@ func (engine *KafkaMessageProducer) Publish(messages []*models.Message, option m
 	config.Producer.Retry.Max = 10
 	config.Producer.RequiredAcks = sarama.WaitForAll
 	config.Version = sarama.V0_11_0_0
-	brokerList := strings.Split(engine.KafkaHosts, ",")
+	brokerList := strings.Split(host, ",")
 	producer, err := sarama.NewSyncProducer(brokerList, config)
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		if err := producer.Close(); err != nil {
-			log.Println(err)
-		}
-	}()
+	return &KafkaMessageProducer{KafkaHosts: host, LogInfo: models.DefaultLog, producer: producer}, nil
+}
+
+// 同步发送
+func (engine *KafkaMessageProducer) Publish(messages []*models.Message, option map[string]interface{}) (*models.MessagePublishResult, error) {
+	//config := sarama.NewConfig()
+	//config.Producer.Return.Successes = true
+	//config.Producer.Return.Errors = true
+	//config.Producer.Partitioner = sarama.NewRandomPartitioner
+	//config.Producer.Retry.Max = 10
+	//config.Producer.RequiredAcks = sarama.WaitForAll
+	//config.Version = sarama.V0_11_0_0
+	//brokerList := strings.Split(engine.KafkaHosts, ",")
+	//producer, err := sarama.NewSyncProducer(brokerList, config)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//defer func() {
+	//	if err := producer.Close(); err != nil {
+	//		log.Println(err)
+	//	}
+	//}()
+	if engine.producer == nil {
+		return nil, fmt.Errorf("producer haven`t set up")
+	}
 	var successMessageIds []int64
 	var errMessageIds []int64
 	for _, message := range messages {
@@ -44,7 +64,7 @@ func (engine *KafkaMessageProducer) Publish(messages []*models.Message, option m
 				Value:     sarama.StringEncoder(value),
 				Timestamp: time.Now(),
 			}
-			partition, offset, err := producer.SendMessage(msg)
+			partition, offset, err := engine.producer.SendMessage(msg)
 			if err != nil {
 				errMessageIds = append(errMessageIds, message.Id)
 				log.Println(err)
@@ -153,12 +173,17 @@ func NewMessageDirector(messageRepository models.MessageRepository, options map[
 	}
 
 	var hosts string
+	var err error
 	if kafkaHosts, ok := options["kafkaHosts"]; ok {
 		hosts = kafkaHosts.(string)
 	} else {
 		hosts = "localhost:9092"
 	}
-	dispatcher.producer = &KafkaMessageProducer{KafkaHosts: hosts, LogInfo: models.DefaultLog}
+	dispatcher.producer, err = NewKafkaMessageProducer(hosts)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
 
 	if interval, ok := options["timeInterval"]; ok {
 		dispatcher.dispatchTicker = time.NewTicker(interval.(time.Duration))

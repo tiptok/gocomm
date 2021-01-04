@@ -25,7 +25,7 @@ import (
 //	consumer.StartConsume()
 //}
 func TestNewConsumerNoRepository(t *testing.T) {
-	consumer := NewConsumer(KAFKA_HOSTS, "0")
+	consumer := NewConsumer(KAFKA_HOSTS, "mmm_orders")
 	consumer.WithTopicHandler("mmm_xcx_orders", func(message interface{}) error {
 		m, ok := message.(*sarama.Message)
 		if !ok {

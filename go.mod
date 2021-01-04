@@ -11,7 +11,6 @@ require (
 	github.com/garyburd/redigo v1.6.0
 	github.com/gin-gonic/gin v1.5.0
 	github.com/go-pg/pg/v10 v10.0.0-beta.2
-	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/google/go-cmp v0.5.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/justinas/alice v1.2.0

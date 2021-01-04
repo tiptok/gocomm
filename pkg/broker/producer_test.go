@@ -44,12 +44,12 @@ func TestNewMessageProducerNoRepository(t *testing.T) {
 }
 
 func TestProducer(t *testing.T) {
-	var producer models.MessageProducer = &kafkax.KafkaMessageProducer{
-		KafkaHosts: KAFKA_HOSTS,
-	}
-	_, err := producer.Publish([]*models.Message{{Id: 1, Topic: "mmm_xcx_orders", MsgTime: time.Now().Unix(), Value: "hello ccc!"}}, nil)
-	if err != nil {
-		t.Fatal(err)
+	producer, _ := kafkax.NewKafkaMessageProducer(KAFKA_HOSTS)
+	for i := 0; i < 3; i++ {
+		_, err := producer.Publish([]*models.Message{{Id: 1, Topic: "mmm_xcx_orders", MsgTime: time.Now().Unix(), Value: "hello ccc!"}}, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 
