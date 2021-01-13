@@ -2,6 +2,7 @@ package cache
 
 import (
 	"github.com/garyburd/redigo/redis"
+	"github.com/tiptok/gocomm/pkg/log"
 	"time"
 )
 
@@ -14,6 +15,8 @@ type Options struct {
 	CleanInterval    time.Duration
 	DefaultRedisPool *redis.Pool
 	DeleteChannel    string
+	DebugMode        bool
+	Log              log.Log
 }
 
 type Option func(o *Options)
@@ -44,5 +47,12 @@ func WithDefaultRedisPool(p *redis.Pool) Option {
 func WithDeleteChannel(s string) Option {
 	return func(o *Options) {
 		o.DeleteChannel = s
+	}
+}
+
+func WithDebugLog(DebugModule bool, log log.Log) Option {
+	return func(o *Options) {
+		o.DebugMode = DebugModule
+		o.Log = log
 	}
 }

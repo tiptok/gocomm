@@ -1,7 +1,7 @@
 package cache
 
 const (
-	DefaultObjectExpire = 60 * 60 * 24 * 7
+	DefaultObjectExpire = 60 * 60 * 24
 )
 
 type (
