@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Shopify/sarama"
+	"github.com/tiptok/gocomm/common"
+	"github.com/tiptok/gocomm/identity/idgen"
 	"github.com/tiptok/gocomm/pkg/broker/models"
 	"log"
 	"strings"
@@ -35,23 +37,6 @@ func NewKafkaMessageProducer(host string) (*KafkaMessageProducer, error) {
 
 // 同步发送
 func (engine *KafkaMessageProducer) Publish(messages []*models.Message, option map[string]interface{}) (*models.MessagePublishResult, error) {
-	//config := sarama.NewConfig()
-	//config.Producer.Return.Successes = true
-	//config.Producer.Return.Errors = true
-	//config.Producer.Partitioner = sarama.NewRandomPartitioner
-	//config.Producer.Retry.Max = 10
-	//config.Producer.RequiredAcks = sarama.WaitForAll
-	//config.Version = sarama.V0_11_0_0
-	//brokerList := strings.Split(engine.KafkaHosts, ",")
-	//producer, err := sarama.NewSyncProducer(brokerList, config)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//defer func() {
-	//	if err := producer.Close(); err != nil {
-	//		log.Println(err)
-	//	}
-	//}()
 	if engine.producer == nil {
 		return nil, fmt.Errorf("producer haven`t set up")
 	}
@@ -86,7 +71,7 @@ type MessageDispatcher struct {
 	notifications     chan struct{}
 	messageChan       chan *models.Message
 	dispatchTicker    *time.Ticker
-	messageRepository models.MessageRepository
+	messageRepository models.MessagePublisherRepository
 	producer          models.MessageProducer
 }
 
@@ -139,11 +124,27 @@ func (dispatcher *MessageDispatcher) Dispatch() {
 }
 
 type MessageDirector struct {
-	messageRepository models.MessageRepository
+	messageRepository models.MessagePublisherRepository
 	dispatcher        *MessageDispatcher
 }
 
-func (d *MessageDirector) PublishMessages(messages []*models.Message) error {
+func (d *MessageDirector) Publish(topic string, originalMessages []interface{}, options ...models.MessageOption) error {
+	var message []*models.Message
+	for i := range originalMessages {
+		m := originalMessages[i]
+		message = append(message, &models.Message{
+			Id:           idgen.Next(),
+			Topic:        topic,
+			Value:        common.JsonAssertString(m),
+			MsgTime:      time.Now().Unix(),
+			FinishStatus: 0,
+		})
+	}
+	return d.PublishMessages(message, options...)
+}
+
+func (d *MessageDirector) PublishMessages(messages []*models.Message, options ...models.MessageOption) error {
+	var option = models.NewMessageOptions(options...)
 	if d.dispatcher == nil {
 		return fmt.Errorf("dispatcher还没有启动")
 	}
@@ -152,48 +153,40 @@ func (d *MessageDirector) PublishMessages(messages []*models.Message) error {
 		return nil
 	}
 	for _, message := range messages {
-		if err := d.messageRepository.SaveMessage(message); err != nil {
+		if option.MessageRepository == nil {
+			break
+		}
+		if err := option.MessageRepository.SaveMessage(message); err != nil {
 			return err
 		}
 	}
-	if err := d.dispatcher.MessagePublishedNotice(); err != nil {
-		return err
-	}
+	go d.dispatcher.MessagePublishedNotice()
 	return nil
 }
 
 // 消息发布器
 // options["kafkaHosts"]="localhost:9092"
 // options["timeInterval"]=time.Second*60*5
-func NewMessageDirector(messageRepository models.MessageRepository, options map[string]interface{}) *MessageDirector {
+func NewMessageDirector(options ...models.MessageOption) *MessageDirector {
+	var option = models.NewMessageOptions(options...)
+
 	dispatcher := &MessageDispatcher{
 		notifications:     make(chan struct{}),
-		messageRepository: messageRepository,
+		messageRepository: option.MessageRepository,
 		messageChan:       make(chan *models.Message, 100),
 	}
-
-	var hosts string
 	var err error
-	if kafkaHosts, ok := options["kafkaHosts"]; ok {
-		hosts = kafkaHosts.(string)
-	} else {
-		hosts = "localhost:9092"
-	}
-	dispatcher.producer, err = NewKafkaMessageProducer(hosts)
+	dispatcher.producer, err = NewKafkaMessageProducer(option.KafkaHost)
 	if err != nil {
 		log.Println(err)
 		return nil
 	}
 
-	if interval, ok := options["timeInterval"]; ok {
-		dispatcher.dispatchTicker = time.NewTicker(interval.(time.Duration))
-	} else {
-		dispatcher.dispatchTicker = time.NewTicker(time.Second * 60 * 5)
-	}
+	dispatcher.dispatchTicker = time.NewTicker(option.Interval)
 	go dispatcher.Dispatch()
 
 	return &MessageDirector{
-		messageRepository: messageRepository,
+		messageRepository: option.MessageRepository,
 		dispatcher:        dispatcher,
 	}
 }

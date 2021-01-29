@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/garyburd/redigo/redis"
-	"github.com/tiptok/gocomm/common"
 	. "github.com/tiptok/gocomm/pkg/cache/model"
 	. "github.com/tiptok/gocomm/pkg/cache/redis_cache"
 	"sync"
@@ -18,8 +17,6 @@ const (
 	//缓存全部重新加载
 	allReload
 )
-
-const multiLevelCache = "【mlcache】"
 
 // TODO：Redis 实现分布式 hash一致性,根据数据hash值,动态获取集群中指定机器来加载缓存
 // 参考 go-zero\core\stores\cache
@@ -118,10 +115,6 @@ func (c *MultiLevelCache) getObjectWithExpiration(key string, obj interface{}, t
 		return err
 	}
 
-	if reload != allReload && item.Object != nil {
-		c.debugLog(multiLevelCache, "hit cache :", key)
-	}
-
 	return Clone(item.Object, obj)
 }
 
@@ -148,10 +141,6 @@ func (c *MultiLevelCache) Load(key string, obj interface{}, ttl int, f LoadFunc,
 	it.MarshData, _ = json.Marshal(it)
 	if err = Clone(o, obj); err != nil {
 		return err
-	}
-
-	if c.Options.DebugMode {
-		c.debugLog(multiLevelCache, "store cache :", key, common.JsonAssertString(obj))
 	}
 
 	return c.TraverseCache(deep, func(c Cache) error {
@@ -188,7 +177,6 @@ func (c *MultiLevelCache) ReleaseMutex(key string) {
 
 // notify all cache nodes to delete key
 func (c *MultiLevelCache) Delete(key string) error {
-	c.debugLog(multiLevelCache, "publish delete key:", key)
 	return RedisPublish(c.Options.DeleteChannel, key, c.pool)
 }
 
@@ -213,7 +201,6 @@ func (c *MultiLevelCache) subscribe(key string) error {
 	}
 }
 func (c *MultiLevelCache) delete(key string) error {
-	c.debugLog(multiLevelCache, "receive delete key:", key)
 	return c.TraverseCache(-1, func(c Cache) error {
 		return c.Delete(key)
 	})
@@ -273,10 +260,4 @@ func itemNeedReload(item *Item) bool {
 		return true
 	}
 	return item.Expire()
-}
-
-func (c *MultiLevelCache) debugLog(args ...interface{}) {
-	if c.Options.DebugMode && c.Options.Log != nil {
-		c.Options.Log.Debug(args...)
-	}
 }

@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-const KAFKA_HOSTS = "127.0.0.1:9092"
+const KAFKA_HOSTS = "106.52.15.41:9092"
 
 //func TestNewMessageProducer(t *testing.T) {
 //	var (
@@ -32,7 +32,7 @@ func TestNewMessageProducerNoRepository(t *testing.T) {
 		err error
 	)
 
-	producer := NewMessageProducer(nil, map[string]interface{}{"kafkaHosts": KAFKA_HOSTS})
+	producer := NewMessageProducer(models.WithKafkaHost(KAFKA_HOSTS))
 	err = producer.PublishMessages([]*models.Message{
 		&models.Message{Id: idgen.Next(), Topic: "chat", MsgTime: time.Now().Unix(), Value: "hello world! tip tip!", FinishStatus: 0},
 	})

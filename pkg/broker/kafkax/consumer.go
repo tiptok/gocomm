@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/Shopify/sarama"
+	"github.com/tiptok/gocomm/common"
 	"github.com/tiptok/gocomm/identity/idgen"
 	"github.com/tiptok/gocomm/pkg/broker/models"
-	"log"
+	"github.com/tiptok/gocomm/pkg/log"
 	"strings"
 	"sync"
 	"time"
@@ -32,18 +33,22 @@ func (consumer *SaramaConsumer) Cleanup(sarama.ConsumerGroupSession) error {
 func (consumer *SaramaConsumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	var err error
 	for message := range claim.Messages() {
-		log.Printf("Message claimed:  timestamp = %v, topic = %s offset = %v value = %v", message.Timestamp, message.Topic, message.Offset, string(message.Value))
+		log.Debug(fmt.Sprintf("【kafka】 Receive Message claimed:  timestamp = %v, topic = %s offset = %v value = %v", message.Timestamp, message.Topic, message.Offset, string(message.Value)))
 		handler, ok := consumer.messageHandlerMap[message.Topic]
-		consumer.messageReceiveBefore(message)
+		if e := consumer.messageReceiveBefore(message); e != nil {
+			ok = false
+			log.Error(e)
+		}
 		if !ok {
 			continue
 		}
-		if err = handler(message); err == nil {
+		var msg = &models.Message{}
+		common.JsonUnmarshal(string(message.Value), msg)
+		if err = handler(msg); err == nil {
 			session.MarkMessage(message, "")
 		} else {
-			fmt.Println("Message claimed: kafka消息处理错误 topic =", message.Topic, message.Offset, err)
+			log.Error("Message claimed: kafka消息处理错误 topic =", message.Topic, message.Offset, err)
 		}
-		session.MarkMessage(message, "")
 		if err != nil {
 			continue
 		}
@@ -52,9 +57,9 @@ func (consumer *SaramaConsumer) ConsumeClaim(session sarama.ConsumerGroupSession
 	return err
 }
 
-func (consumer *SaramaConsumer) messageReceiveBefore(message *sarama.ConsumerMessage) {
+func (consumer *SaramaConsumer) messageReceiveBefore(message *sarama.ConsumerMessage) error {
 	if consumer.receiver == nil {
-		return
+		return nil
 	}
 
 	var params = make(map[string]interface{})
@@ -66,13 +71,15 @@ func (consumer *SaramaConsumer) messageReceiveBefore(message *sarama.ConsumerMes
 		if !topicMiss {
 			fmt.Printf("topic:[%v] has not consumer handler", message.Topic)
 		}
-		return
+		return nil
 	}
 
 	_, err = consumer.storeMessage(params, message)
 	if err != nil {
-		log.Println("ConsumeClaim:", err)
+		ok = false
+		//log.Println("ConsumeClaim:", err)
 	}
+	return err
 }
 func (consumer *SaramaConsumer) messageReceiveAfter(message *sarama.ConsumerMessage) {
 	if consumer.receiver == nil {
@@ -84,7 +91,7 @@ func (consumer *SaramaConsumer) messageReceiveAfter(message *sarama.ConsumerMess
 func (consumer *SaramaConsumer) storeMessage(params map[string]interface{}, message *sarama.ConsumerMessage) (id int64, err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			log.Println(e)
+			log.Error(e)
 		}
 	}()
 	id = idgen.Next()
@@ -104,7 +111,7 @@ func (consumer *SaramaConsumer) storeMessage(params map[string]interface{}, mess
 func (consumer *SaramaConsumer) finishMessage(params map[string]interface{}) error {
 	defer func() {
 		if e := recover(); e != nil {
-			log.Println(e)
+			log.Error(e)
 		}
 	}()
 	consumer.receiver.ConfirmReceive(params)
@@ -124,7 +131,6 @@ func (consumer *SaramaConsumer) StartConsume() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
-	consumer.ready = make(chan bool)
 	go func() {
 		defer wg.Done()
 		for {
@@ -133,19 +139,20 @@ func (consumer *SaramaConsumer) StartConsume() error {
 				topics = append(topics, key)
 			}
 			if err := consumerGroup.Consume(ctx, topics, consumer); err != nil {
-				log.Println(err.Error())
+				log.Error(err.Error())
 				return
 			}
 			if ctx.Err() != nil {
 				return
 			}
+			consumer.ready = make(chan bool)
 		}
 	}()
 	<-consumer.ready
-	log.Println("Sarama consumer up and running!...")
+	log.Info("Sarama consumer up and running!...")
 	select {
 	case <-ctx.Done():
-		log.Println("Sarama consumer : context cancelled")
+		log.Info("Sarama consumer : context cancelled")
 	}
 	cancel()
 	wg.Wait()
@@ -167,5 +174,6 @@ func NewSaramaConsumer(kafkaHosts string, groupId string) models.Consumer {
 		groupId:           groupId,
 		topicMiss:         make(map[string]string),
 		messageHandlerMap: make(map[string]func(message interface{}) error),
+		ready:             make(chan bool),
 	}
 }

@@ -3,7 +3,7 @@ package models
 import "log"
 
 // 消息存储-发布
-type MessageRepository interface {
+type MessagePublisherRepository interface {
 	SaveMessage(message *Message) error
 	FindNoPublishedStoredMessages() ([]*Message, error)
 	FinishMessagesStatus(messageIds []int64, finishStatus int) error
