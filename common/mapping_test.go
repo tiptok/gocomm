@@ -69,3 +69,19 @@ func TestAppendCustomField(t *testing.T) {
 		Age  int64  `json:"age"`
 	}{Name: "ccc", Age: 20}, customeFiles))
 }
+
+func TestCopyObject(t *testing.T) {
+	type User struct {
+		Name string
+		Id   int
+	}
+	var user1 = &User{
+		Name: "tt",
+		Id:   1,
+	}
+	var user2 = &User{}
+	CopyObject(user1, user2)
+	if user2.Id != 1 {
+		t.Fatal("except:", 1, "get:", user2.Id)
+	}
+}

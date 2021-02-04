@@ -3,6 +3,7 @@ package myrest
 import (
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/context"
+	"github.com/gin-gonic/gin"
 	"github.com/justinas/alice"
 	"net/http"
 )
@@ -58,5 +59,13 @@ func BeeFuncToHandlerFunc(c *context.Context, work func(c *context.Context)) htt
 			ResponseWriter: w,
 		}
 		work(c)
+	}
+}
+
+func GinUseMiddleware(middle ...func(http.Handler) http.Handler) gin.HandlerFunc {
+	chain := midChain(middle...)
+	return func(c *gin.Context) {
+		svr := chain.ThenFunc(func(http.ResponseWriter, *http.Request) {})
+		svr.ServeHTTP(c.Writer, c.Request)
 	}
 }
