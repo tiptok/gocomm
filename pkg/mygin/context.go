@@ -29,7 +29,7 @@ func (controller ContextController) BodyKeys(ctx *gin.Context, firstCaseToUpper 
 }
 
 func (controller *ContextController) Resp(ctx *gin.Context, msg interface{}) {
-	ctx.Set("outputData", msg)
+	//ctx.Writer.Header().Set("Content-Type","application/json")
 	ctx.JSON(http.StatusOK, msg)
 }
 

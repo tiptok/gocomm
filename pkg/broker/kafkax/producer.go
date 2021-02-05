@@ -26,7 +26,7 @@ func NewKafkaMessageProducer(host string) (*KafkaMessageProducer, error) {
 	config.Producer.Partitioner = sarama.NewRandomPartitioner
 	config.Producer.Retry.Max = 10
 	config.Producer.RequiredAcks = sarama.WaitForAll
-	config.Version = sarama.V0_11_0_0
+	config.Version = sarama.V0_10_2_1
 	brokerList := strings.Split(host, ",")
 	producer, err := sarama.NewSyncProducer(brokerList, config)
 	if err != nil {

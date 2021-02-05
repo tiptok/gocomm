@@ -62,7 +62,7 @@ func BeeFuncToHandlerFunc(c *context.Context, work func(c *context.Context)) htt
 	}
 }
 
-func GinUseMiddleware(middle ...func(http.Handler) http.Handler) gin.HandlerFunc {
+func GinMiddlewareChains(middle ...func(http.Handler) http.Handler) gin.HandlerFunc {
 	chain := midChain(middle...)
 	return func(c *gin.Context) {
 		svr := chain.ThenFunc(func(http.ResponseWriter, *http.Request) {})

@@ -25,14 +25,14 @@ func (repository *PgMessageReceiverRepository) ReceiveMessage(params map[string]
 		Status int
 	}
 	var query queryType
-	checkSql := `select count(0) num,sum(status) status from sys_message_consume where "offset" =? and topic=? limit 1`
-	_, err := repository.Db.Query(&query, checkSql, params["offset"], params["topic"])
+	checkSql := `select count(0) num,sum(status) status from sys_message_consume where id =? limit 1`
+	_, err := repository.Db.Query(&query, checkSql, params["id"])
 	if err != nil {
 		return err
 	}
 	if query.Num == 0 {
-		sql := `insert into sys_message_consume(topic,partition,"offset",key,value,msg_time,create_at,status)values(?,?,?,?,?,?,?,?)`
-		_, err = repository.Db.Exec(sql, params["topic"], params["partition"], params["offset"], params["key"], params["value"], params["msg_time"], params["create_at"], params["status"])
+		sql := `insert into sys_message_consume(id,topic,partition,"offset",key,value,msg_time,create_at,status)values(?,?,?,?,?,?,?,?,?)`
+		_, err = repository.Db.Exec(sql, params["id"], params["topic"], params["partition"], params["offset"], params["key"], params["value"], params["msg_time"], params["create_at"], params["status"])
 	}
 	if query.Num > 0 && query.Status == int(models.Finished) {
 		return fmt.Errorf("receive repeate message status:%v [%v]", query.Status, params)
@@ -41,6 +41,6 @@ func (repository *PgMessageReceiverRepository) ReceiveMessage(params map[string]
 }
 
 func (repository *PgMessageReceiverRepository) ConfirmReceive(params map[string]interface{}) error {
-	_, err := repository.Db.Exec(`update sys_message_consume set status=? where "offset" =? and topic=?`, int(models.Finished), params["offset"], params["topic"])
+	_, err := repository.Db.Exec(`update sys_message_consume set status=? where "id" =?`, int(models.Finished), params["id"])
 	return err
 }

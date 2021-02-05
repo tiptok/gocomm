@@ -6,6 +6,6 @@ import (
 )
 
 //新消费者-消费组
-func NewConsumer(kafkaHosts string, groupId string) models.Consumer {
-	return kafkax.NewSaramaConsumer(kafkaHosts, groupId)
+func NewConsumer(kafkaHosts string, groupId string, options ...models.MessageOption) models.Consumer {
+	return kafkax.NewSaramaConsumer(kafkaHosts, groupId, options...)
 }
