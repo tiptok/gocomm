@@ -21,6 +21,7 @@ type SaramaConsumer struct {
 	groupId    string
 	topicMiss  map[string]string //记录未被消费的topic
 	receiver   models.MessageReceiverRepository
+	version    string
 }
 
 func (consumer *SaramaConsumer) Setup(sarama.ConsumerGroupSession) error {
@@ -122,7 +123,14 @@ func (consumer *SaramaConsumer) StartConsume() error {
 	config := sarama.NewConfig()
 	config.Consumer.Group.Rebalance.Strategy = sarama.BalanceStrategyRoundRobin
 	config.Consumer.Offsets.Initial = sarama.OffsetNewest
-	config.Version = sarama.V0_11_0_0
+	config.Version = sarama.V0_10_2_1
+	if len(consumer.version) > 0 {
+		if v, e := sarama.ParseKafkaVersion(consumer.version); e != nil {
+			return e
+		} else {
+			config.Version = v
+		}
+	}
 	brokerList := strings.Split(consumer.kafkaHosts, ",")
 	consumerGroup, err := sarama.NewConsumerGroup(brokerList, consumer.groupId, config)
 	if err != nil {
@@ -166,6 +174,10 @@ func (consumer *SaramaConsumer) WithTopicHandler(topic string, handler func(mess
 }
 func (consumer *SaramaConsumer) WithMessageReceiver(receiver models.MessageReceiverRepository) {
 	consumer.receiver = receiver
+}
+
+func (consumer *SaramaConsumer) WithVersion(version string) {
+	consumer.version = version
 }
 
 func NewSaramaConsumer(kafkaHosts string, groupId string) models.Consumer {

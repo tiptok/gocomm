@@ -20,6 +20,7 @@ type Consumer interface {
 	StartConsume() error
 	WithTopicHandler(topic string, handler func(message interface{}) error)
 	WithMessageReceiver(receiver MessageReceiverRepository)
+	WithVersion(version string)
 }
 
 // 生产者
