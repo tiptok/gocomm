@@ -3,8 +3,12 @@ package trace
 import (
 	"context"
 	"fmt"
+	"github.com/openzipkin/zipkin-go/model"
+	"github.com/tiptok/gocomm/common"
+	"github.com/tiptok/gocomm/pkg/log"
 	"github.com/tiptok/gocomm/pkg/trace/tracespec"
 	"github.com/tiptok/gocomm/xstring"
+	"hash/crc32"
 	"strconv"
 	"strings"
 	"time"
@@ -74,6 +78,9 @@ func (s *Span) Visit(fn func(key, val string) bool) {
 }
 
 func (s *Span) Finish() {
+	if globalReport != nil {
+		globalSpanFinish(s)
+	}
 }
 
 func (s *Span) Fork(ctx context.Context, serviceName, operationName string) (context.Context, tracespec.Trace) {
@@ -127,4 +134,43 @@ func (s *Span) followSpanId() string {
 	fields[len(fields)-1] = last
 
 	return strings.Join(fields, spanSep)
+}
+
+/*******************自定义 tracing ******************/
+func (s *Span) printInfo() {
+	span := s
+	log.Debug(span.TraceId(), span.SpanId(), span.serviceName, span.operationName, span.startTime.Unix())
+}
+
+func (s *Span) parentId() string {
+	idx := strings.LastIndex(s.SpanId(), ".")
+	if idx < 0 {
+		return s.TraceId()
+	}
+	return string(s.SpanId()[:idx])
+}
+
+func zipkinOnFinish(s *Span) {
+	parentId := model.ID(uint64(crc32.ChecksumIEEE([]byte(s.parentId()))))
+	m := model.SpanModel{
+		SpanContext: model.SpanContext{
+			TraceID: model.TraceID{
+				Low: uint64(crc32.ChecksumIEEE([]byte(s.TraceId()))),
+			},
+			ID: model.ID(uint64(crc32.ChecksumIEEE([]byte(s.SpanId())))),
+		},
+		Name:          s.operationName,
+		Kind:          model.Kind(strings.ToUpper(s.flag)),
+		Timestamp:     time.Now(),
+		Duration:      time.Now().Sub(s.startTime),
+		LocalEndpoint: globalLocalEndpoint,
+		Annotations:   make([]model.Annotation, 0),
+		Tags:          make(map[string]string),
+	}
+	if strings.LastIndex(s.SpanId(), ".") >= 0 {
+		m.ParentID = &parentId
+	}
+	//s.printInfo()
+	log.Error(common.JsonAssertString(m))
+	globalReport.Send(m)
 }
