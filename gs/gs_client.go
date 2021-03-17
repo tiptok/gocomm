@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"github.com/astaxie/beego/httplib"
 	"github.com/tiptok/gocomm/common"
-	"strconv"
-	"strings"
 )
 
 type (
@@ -25,12 +23,12 @@ type (
 		PathParam  []interface{}
 		PathQuery  map[string]interface{}
 		JsonObject interface{}
+		Header     map[string]interface{}
 	}
 	HttpRequest struct {
 		*httplib.BeegoHTTPRequest
 	}
-	MapData map[string]interface{}
-	Router  struct {
+	Router struct {
 		Key        string
 		Path       string
 		HttpMethod string
@@ -68,6 +66,11 @@ func (c *GatewayClient) NewRequest(key string, option ...ClientOption) *HttpRequ
 			request.Header(k, fmt.Sprintf("%v", v))
 		}
 	}
+	if len(options.Header) > 0 {
+		for k, v := range options.Header {
+			request.Header(k, fmt.Sprintf("%v", v))
+		}
+	}
 	return &HttpRequest{request}
 }
 func (c *GatewayClient) AddApi(key, path, method string) {
@@ -94,21 +97,34 @@ func (api apiStruct) Method() string {
 
 type ClientOption func(options *ClientOptions)
 
+// WithPathParam 请求路径参数填充  eg:/user/:userId/info ,需要填充:userId值
 func WithPathParam(params ...interface{}) func(options *ClientOptions) {
 	return func(options *ClientOptions) {
 		options.PathParam = params
 	}
 }
+
+// WithJsonObject 参数body
 func WithJsonObject(object interface{}) func(options *ClientOptions) {
 	return func(options *ClientOptions) {
 		options.JsonObject = object
 	}
 }
+
+// WithPathQuery 请求路径后面的参数 eg:?id=1&&name=22
 func WithPathQuery(pathQuery map[string]interface{}) func(options *ClientOptions) {
 	return func(options *ClientOptions) {
 		options.PathQuery = pathQuery
 	}
 }
+
+// WithHeader 请求头 eg:x_trace_id=1
+func WithHeader(header map[string]interface{}) func(options *ClientOptions) {
+	return func(options *ClientOptions) {
+		options.Header = header
+	}
+}
+
 func NewClientOptions(options ...ClientOption) *ClientOptions {
 	option := &ClientOptions{}
 	for i := range options {
@@ -125,41 +141,4 @@ func (b *HttpRequest) ToJSON(v interface{}) error {
 	parse := json.NewDecoder(bytes.NewBuffer(data))
 	parse.UseNumber()
 	return parse.Decode(v)
-}
-
-// FindField find key value from MapData
-// eq:key.key1.key2  will find map[key][key1][key2]
-func (m MapData) FindField(field string) (interface{}, bool) {
-	var result = false
-	if len(field) == 0 {
-		return m, result
-	}
-	fieldChains := strings.Split(field, ".")
-	var cur interface{} = m[fieldChains[0]]
-	for i := 1; i < len(fieldChains); i++ {
-		mapFiled, ok := cur.(map[string]interface{})
-		if !ok {
-			return nil, result
-		}
-		cur = mapFiled[fieldChains[i]]
-	}
-	return cur, true
-}
-
-// 打印 map 的结构
-func (m MapData) PrintMapStruct() string {
-	if m == nil {
-		return ""
-	}
-	return common.JsonAssertString(m)
-}
-
-func (m MapData) Int(field string) int {
-	v, _ := m.FindField(field)
-	vInt, _ := strconv.Atoi(string(v.(json.Number)))
-	return vInt
-}
-func (m MapData) String(field string) string {
-	v, _ := m.FindField(field)
-	return common.AssertString(v)
 }

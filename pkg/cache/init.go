@@ -23,3 +23,16 @@ func GetObject(key string, obj interface{}, ttl int, f LoadFunc) error {
 func Delete(key string) error {
 	return mlCache.Delete(key)
 }
+
+func InitMultiLevelCache(option ...Option) {
+	if mlCache == nil {
+		mlCache = NewMultiLevelCacheNew(option...)
+	}
+}
+
+func RegisterCache(cache ...Cache) {
+	if mlCache == nil {
+		mlCache = NewMultiLevelCacheNew()
+	}
+	mlCache.RegisterCache(cache...)
+}

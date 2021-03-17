@@ -8,6 +8,7 @@ import (
 	. "github.com/tiptok/gocomm/pkg/cache/model"
 	. "github.com/tiptok/gocomm/pkg/cache/redis_cache"
 	"sync"
+	"sync/atomic"
 )
 
 const (
@@ -42,6 +43,8 @@ type MultiLevelCache struct {
 	mlCache *MLCache
 	// RWMutex map for each cache key
 	muxm sync.Map
+	// cache len
+	len int32
 }
 
 type MLCache struct {
@@ -51,16 +54,18 @@ type MLCache struct {
 
 func NewMultiLevelCacheNew(option ...Option) *MultiLevelCache {
 	o := NewOptions(option...)
-	if o.DefaultRedisPool == nil {
-		panic("redis pool is nil")
-	}
+	//if o.DefaultRedisPool == nil {
+	//	panic("redis pool is nil")
+	//}
 	c := &MultiLevelCache{
 		Options: o,
 	}
 	c.pool = o.DefaultRedisPool
 
-	// subscribe key deletion
-	go c.subscribe(o.DeleteChannel)
+	if o.DefaultRedisPool != nil {
+		// subscribe key deletion
+		go c.subscribe(o.DeleteChannel)
+	}
 	return c
 }
 
@@ -186,8 +191,13 @@ func (c *MultiLevelCache) ReleaseMutex(key string) {
 	return
 }
 
-// notify all cache nodes to delete key
+// Delete notify all cache nodes to delete key
+// 通过发布订阅进行键值删除、如果只有一级缓存、直接移除
 func (c *MultiLevelCache) Delete(key string) error {
+	if c.len == 1 {
+		c.debugLog(multiLevelCache, "delete key:", key)
+		return c.delete(key)
+	}
 	c.debugLog(multiLevelCache, "publish delete key:", key)
 	return RedisPublish(c.Options.DeleteChannel, key, c.pool)
 }
@@ -258,6 +268,7 @@ func (c *MultiLevelCache) RegisterCache(cache ...Cache) {
 	}
 }
 func (c *MultiLevelCache) registerCache(cacheLink *MLCache, cache Cache) error {
+	atomic.AddInt32(&c.len, 1)
 	if cacheLink.Next == nil {
 		cacheLink.Next = &MLCache{
 			Current: cache,

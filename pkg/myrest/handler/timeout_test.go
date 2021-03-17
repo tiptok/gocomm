@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"github.com/bmizerany/assert"
+	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"

@@ -3,6 +3,7 @@ package gs
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/stretchr/testify/assert"
 	"github.com/tiptok/gocomm/common"
 	"net/http"
 	"testing"
@@ -86,7 +87,15 @@ func TestResponseData(t *testing.T) {
 	parse := json.NewDecoder(bytes.NewBuffer([]byte(`{
     "code": 0,
     "msg": "成功",
-    "data": {}
+    "data": {
+		"user":{
+          "name":"tiptok",
+          "age":10,
+          "rate":10.1,
+          "address":{"ip":["123","456"]}
+		},
+        "class":"6班"
+	}
 }`)))
 	parse.UseNumber()
 	var responseData *ResponseData
@@ -94,4 +103,9 @@ func TestResponseData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	assert.EqualValues(t, "tiptok", responseData.String("user.name"))
+	assert.EqualValues(t, 10, responseData.Int("user.age"))
+	assert.EqualValues(t, 10.1, responseData.Float64("user.rate"))
+	//t.Log(responseData.String("class"))
+	//t.Log(responseData.MustFindField("user.address.ip"))
 }
