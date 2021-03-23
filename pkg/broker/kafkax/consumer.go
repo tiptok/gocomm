@@ -41,7 +41,7 @@ func (consumer *SaramaConsumer) ConsumeClaim(session sarama.ConsumerGroupSession
 		session.MarkMessage(message, "")
 		if err != nil {
 			// message retry
-			if consumer.option.ConsumeRetryOption.Enable {
+			if consumer.option.EnableConsumeRetry {
 				consumer.ConsumerRetry.StoreRetryMessage(message)
 			}
 			continue
@@ -193,7 +193,7 @@ func (consumer *SaramaConsumer) StartConsume() error {
 	return nil
 }
 func (consumer *SaramaConsumer) StartExtraWork() {
-	if consumer.option.ConsumeRetryOption.Enable {
+	if consumer.option.EnableConsumeRetry {
 		consumer.ConsumerRetry = NewConsumerRetry(consumer.option.ConsumeRetryOption, consumer)
 		consumer.ConsumerRetry.task.Start()
 		log.Info(fmt.Sprintf("ConsumerRetry start  maxtime:%v duration:%vs", consumer.option.ConsumeRetryOption.MaxRetryTime, consumer.option.ConsumeRetryOption.NextRetryTimeSpan))

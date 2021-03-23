@@ -13,7 +13,8 @@ type MessageOptions struct {
 	//默认false: 格式化成models.Message对象，
 	//true:需要原始sarama.ConsumeMessage对象
 	HandlerOriginalMessageFlag bool
-
+	// Enable  enable consume try retry ,true:enable false:disable
+	EnableConsumeRetry bool
 	ConsumeRetryOption *ConsumeRetryOption
 }
 
@@ -64,7 +65,8 @@ func WithConsumeRetryOption(maxRetryTime int, retryDuration int, store MessageSt
 			options.ConsumeRetryOption.Store = store
 		}
 		if maxRetryTime > 0 {
-			options.ConsumeRetryOption.Enable = true
+			//options.ConsumeRetryOption.Enable = true
+			options.EnableConsumeRetry = true
 		}
 	}
 }

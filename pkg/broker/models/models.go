@@ -27,7 +27,7 @@ type MessagePublishResult struct {
 
 type ConsumeRetryOption struct {
 	// Enable  enable consume try retry ,true:enable false:disable
-	Enable bool
+	//Enable bool
 	// 最大重试次数
 	MaxRetryTime int
 	// 下一次重试间隔 单位:second
