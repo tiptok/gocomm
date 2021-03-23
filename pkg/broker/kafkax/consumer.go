@@ -8,6 +8,7 @@ import (
 	"github.com/tiptok/gocomm/identity/idgen"
 	"github.com/tiptok/gocomm/pkg/broker/models"
 	"github.com/tiptok/gocomm/pkg/log"
+	"github.com/tiptok/gocomm/sync/task"
 	"strings"
 	"sync"
 	"time"
@@ -22,7 +23,8 @@ type SaramaConsumer struct {
 	topicMiss  map[string]string //记录未被消费的topic
 	receiver   models.MessageReceiverRepository
 	//version    string
-	option *models.MessageOptions
+	option        *models.MessageOptions
+	ConsumerRetry *ConsumerRetry
 }
 
 func (consumer *SaramaConsumer) Setup(sarama.ConsumerGroupSession) error {
@@ -35,34 +37,44 @@ func (consumer *SaramaConsumer) Cleanup(sarama.ConsumerGroupSession) error {
 func (consumer *SaramaConsumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	var err error
 	for message := range claim.Messages() {
-		log.Debug(fmt.Sprintf("【kafka】 Receive Message claimed:  timestamp = %v, topic = %s offset = %v value = %v", message.Timestamp, message.Topic, message.Offset, string(message.Value)))
-		handler, ok := consumer.messageHandlerMap[message.Topic]
-		var msg = &models.Message{}
-		common.JsonUnmarshal(string(message.Value), msg)
-
-		if e := consumer.messageReceiveBefore(message, msg.Id); e != nil {
-			ok = false
-			log.Error(e)
-		}
-		if !ok {
-			continue
-		}
-		var handlerMsg interface{} = msg
-		if consumer.option.HandlerOriginalMessageFlag {
-			handlerMsg = message
-		}
-		if err = handler(handlerMsg); err == nil {
-			session.MarkMessage(message, "")
-		}
+		err = consumer.messageProcess(message)
+		session.MarkMessage(message, "")
 		if err != nil {
-			log.Error("Message claimed: kafka消息处理错误 topic =", message.Topic, message.Offset, err)
+			// message retry
+			if consumer.option.ConsumeRetryOption.Enable {
+				consumer.ConsumerRetry.StoreRetryMessage(message)
+			}
 			continue
 		}
-		consumer.messageReceiveAfter(msg.Id)
 	}
 	return err
 }
 
+func (consumer *SaramaConsumer) messageProcess(message *sarama.ConsumerMessage) error {
+	var err error
+	log.Debug(fmt.Sprintf("【kafka】 receive message  topic = %s offset = %v value = %v", message.Topic, message.Offset, string(message.Value)))
+	handler, ok := consumer.messageHandlerMap[message.Topic]
+	var msg = &models.Message{}
+	common.JsonUnmarshal(string(message.Value), msg)
+
+	if e := consumer.messageReceiveBefore(message, msg.Id); e != nil {
+		ok = false
+		log.Error(e)
+	}
+	if !ok {
+		return nil
+	}
+	var handlerMsg interface{} = msg
+	if consumer.option.HandlerOriginalMessageFlag {
+		handlerMsg = message
+	}
+	if err = handler(handlerMsg); err != nil {
+		log.Error("【kafka】 message process error topic =", message.Topic, "offset:", message.Offset, err)
+		return err
+	}
+	consumer.messageReceiveAfter(msg.Id)
+	return nil
+}
 func (consumer *SaramaConsumer) messageReceiveBefore(message *sarama.ConsumerMessage, msgId int64) error {
 	if consumer.receiver == nil {
 		return nil
@@ -131,6 +143,7 @@ func (consumer *SaramaConsumer) StartConsume() error {
 	config := sarama.NewConfig()
 	config.Consumer.Group.Rebalance.Strategy = sarama.BalanceStrategyRoundRobin
 	config.Consumer.Offsets.Initial = sarama.OffsetNewest
+	//config.Consumer.Offsets.AutoCommit.Enable = false
 	config.Version = sarama.V0_10_2_1
 	if len(consumer.option.Version) > 0 {
 		if v, e := sarama.ParseKafkaVersion(consumer.option.Version); e != nil {
@@ -165,7 +178,9 @@ func (consumer *SaramaConsumer) StartConsume() error {
 		}
 	}()
 	<-consumer.ready
-	log.Info("Sarama consumer up and running!...")
+	log.Info("Sarama consumer up and running")
+
+	consumer.StartExtraWork()
 	select {
 	case <-ctx.Done():
 		log.Info("Sarama consumer : context cancelled")
@@ -176,6 +191,13 @@ func (consumer *SaramaConsumer) StartConsume() error {
 		return err
 	}
 	return nil
+}
+func (consumer *SaramaConsumer) StartExtraWork() {
+	if consumer.option.ConsumeRetryOption.Enable {
+		consumer.ConsumerRetry = NewConsumerRetry(consumer.option.ConsumeRetryOption, consumer)
+		consumer.ConsumerRetry.task.Start()
+		log.Info(fmt.Sprintf("ConsumerRetry start  maxtime:%v duration:%vs", consumer.option.ConsumeRetryOption.MaxRetryTime, consumer.option.ConsumeRetryOption.NextRetryTimeSpan))
+	}
 }
 func (consumer *SaramaConsumer) WithTopicHandler(topic string, handler func(message interface{}) error) { //*sarama.ConsumerMessage
 	consumer.messageHandlerMap[topic] = handler
@@ -194,4 +216,68 @@ func NewSaramaConsumer(kafkaHosts string, groupId string, options ...models.Mess
 		ready:             make(chan bool),
 		option:            option,
 	}
+}
+
+type ConsumerRetry struct {
+	option *models.ConsumeRetryOption
+	// 容器
+	store models.MessageStore
+	//retryHandler interface{}
+	exit chan int
+	// periodic task
+	task *task.Periodic
+	// consumer
+	consumer *SaramaConsumer
+}
+
+func (retry *ConsumerRetry) ConsumeRetryMessage(consumer *SaramaConsumer) {
+	retry.task.Start()
+}
+
+func (retry *ConsumerRetry) StoreRetryMessage(message *sarama.ConsumerMessage) error {
+	retryMessage := &models.RetryMessage{
+		Message:       message,
+		RetryTime:     1,
+		MaxRetryTime:  retry.option.MaxRetryTime,
+		NextRetryTime: time.Now().Add(time.Duration(retry.option.NextRetryTimeSpan)).Unix(),
+	}
+	return retry.store.StoreMessage(retryMessage)
+}
+
+func (retry *ConsumerRetry) processMessage() error {
+	defer func() {
+		if p := recover(); p != nil {
+			log.Warn(p)
+		}
+	}()
+	messages, err := retry.store.GetMessage()
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	if len(messages) == 0 {
+		return nil
+	}
+	for _, m := range messages {
+		if m.RetryTime > retry.option.MaxRetryTime {
+			continue
+		}
+		err := retry.consumer.messageProcess(m.Message)
+		if err != nil && m.RetryTime < retry.option.MaxRetryTime {
+			m.RetryTime++
+			m.NextRetryTime = time.Now().Add(time.Second * time.Duration(retry.option.NextRetryTimeSpan)).Unix()
+			retry.store.StoreMessage(m)
+		}
+	}
+	return nil
+}
+
+func NewConsumerRetry(option *models.ConsumeRetryOption, consumer *SaramaConsumer) *ConsumerRetry {
+	retry := &ConsumerRetry{
+		option:   option,
+		store:    option.Store,
+		consumer: consumer,
+	}
+	retry.task = task.NewPeriodic(time.Second*time.Duration(option.NextRetryTimeSpan), retry.processMessage)
+	return retry
 }

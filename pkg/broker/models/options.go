@@ -13,6 +13,8 @@ type MessageOptions struct {
 	//默认false: 格式化成models.Message对象，
 	//true:需要原始sarama.ConsumeMessage对象
 	HandlerOriginalMessageFlag bool
+
+	ConsumeRetryOption *ConsumeRetryOption
 }
 
 type MessageOption func(options *MessageOptions)
@@ -44,6 +46,26 @@ func WithVersion(version string) MessageOption {
 func WithHandlerOriginalMessageFlag(flag bool) MessageOption {
 	return func(options *MessageOptions) {
 		options.HandlerOriginalMessageFlag = flag
+	}
+}
+
+// WithConsumeRetryOption set message retry config
+// maxRetryTime is max try time,if over limit time ,will abort retry
+// retryDuration is interval of timer to work
+// store is message persistent container
+func WithConsumeRetryOption(maxRetryTime int, retryDuration int, store MessageStore) MessageOption {
+	return func(options *MessageOptions) {
+		options.ConsumeRetryOption = &ConsumeRetryOption{
+			MaxRetryTime:      maxRetryTime,
+			NextRetryTimeSpan: retryDuration,
+			Store:             store,
+		}
+		if store == nil {
+			options.ConsumeRetryOption.Store = store
+		}
+		if maxRetryTime > 0 {
+			options.ConsumeRetryOption.Enable = true
+		}
 	}
 }
 

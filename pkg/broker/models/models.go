@@ -1,5 +1,7 @@
 package models
 
+import "github.com/Shopify/sarama"
+
 type Message struct {
 	Id           int64  `json:"id"`
 	Topic        string `json:"topic"`
@@ -21,4 +23,22 @@ const (
 type MessagePublishResult struct {
 	SuccessMessageIds []int64
 	ErrorMessageIds   []int64
+}
+
+type ConsumeRetryOption struct {
+	// Enable  enable consume try retry ,true:enable false:disable
+	Enable bool
+	// 最大重试次数
+	MaxRetryTime int
+	// 下一次重试间隔 单位:second
+	NextRetryTimeSpan int
+	// 消息仓库
+	Store MessageStore
+}
+
+type RetryMessage struct {
+	Message       *sarama.ConsumerMessage
+	RetryTime     int
+	NextRetryTime int64
+	MaxRetryTime  int
 }

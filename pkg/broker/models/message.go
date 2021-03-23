@@ -1,6 +1,8 @@
 package models
 
-import "log"
+import (
+	"log"
+)
 
 // 消息存储-发布
 type MessagePublisherRepository interface {
@@ -25,6 +27,11 @@ type Consumer interface {
 // 生产者
 type MessageProducer interface {
 	Publish(messages []*Message, option map[string]interface{}) (*MessagePublishResult, error)
+}
+
+type MessageStore interface {
+	GetMessage() ([]*RetryMessage, error)
+	StoreMessage(msg *RetryMessage) error
 }
 
 type LogInfo func(params ...interface{})
