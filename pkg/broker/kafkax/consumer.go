@@ -38,14 +38,15 @@ func (consumer *SaramaConsumer) ConsumeClaim(session sarama.ConsumerGroupSession
 	var err error
 	for message := range claim.Messages() {
 		err = consumer.messageProcess(message)
-		session.MarkMessage(message, "")
 		if err != nil {
 			// message retry
 			if consumer.option.EnableConsumeRetry {
 				consumer.ConsumerRetry.StoreRetryMessage(message)
 			}
+			session.MarkMessage(message, "")
 			continue
 		}
+		session.MarkMessage(message, "")
 	}
 	return err
 }
@@ -54,17 +55,19 @@ func (consumer *SaramaConsumer) messageProcess(message *sarama.ConsumerMessage) 
 	var err error
 	log.Debug(fmt.Sprintf("【kafka】 receive message  topic = %s offset = %v value = %v", message.Topic, message.Offset, string(message.Value)))
 	handler, ok := consumer.messageHandlerMap[message.Topic]
+	if !ok {
+		log.Debug(fmt.Sprintf("【kafka】   topic = %s unregist", message.Topic))
+		return nil
+	}
 	var msg = &models.Message{}
 	common.JsonUnmarshal(string(message.Value), msg)
-
+	var handlerMsg interface{} = msg
+	// if message is repeat ,just return
 	if e := consumer.messageReceiveBefore(message, msg.Id); e != nil {
 		ok = false
 		log.Error(e)
-	}
-	if !ok {
 		return nil
 	}
-	var handlerMsg interface{} = msg
 	if consumer.option.HandlerOriginalMessageFlag {
 		handlerMsg = message
 	}
@@ -72,7 +75,9 @@ func (consumer *SaramaConsumer) messageProcess(message *sarama.ConsumerMessage) 
 		log.Error("【kafka】 message process error topic =", message.Topic, "offset:", message.Offset, err)
 		return err
 	}
-	consumer.messageReceiveAfter(msg.Id)
+	if err = consumer.messageReceiveAfter(msg.Id); err != nil {
+		return err
+	}
 	return nil
 }
 func (consumer *SaramaConsumer) messageReceiveBefore(message *sarama.ConsumerMessage, msgId int64) error {
@@ -99,11 +104,11 @@ func (consumer *SaramaConsumer) messageReceiveBefore(message *sarama.ConsumerMes
 	}
 	return err
 }
-func (consumer *SaramaConsumer) messageReceiveAfter(msgId int64) {
+func (consumer *SaramaConsumer) messageReceiveAfter(msgId int64) error {
 	if consumer.receiver == nil {
-		return
+		return nil
 	}
-	consumer.finishMessage(map[string]interface{}{"id": msgId})
+	return consumer.finishMessage(map[string]interface{}{"id": msgId})
 }
 
 func (consumer *SaramaConsumer) storeMessage(params map[string]interface{}, message *sarama.ConsumerMessage, msgId int64) (id int64, err error) {
@@ -237,7 +242,7 @@ func (retry *ConsumerRetry) ConsumeRetryMessage(consumer *SaramaConsumer) {
 func (retry *ConsumerRetry) StoreRetryMessage(message *sarama.ConsumerMessage) error {
 	retryMessage := &models.RetryMessage{
 		Message:       message,
-		RetryTime:     1,
+		RetryTime:     0,
 		MaxRetryTime:  retry.option.MaxRetryTime,
 		NextRetryTime: time.Now().Add(time.Duration(retry.option.NextRetryTimeSpan)).Unix(),
 	}

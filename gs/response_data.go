@@ -3,8 +3,13 @@ package gs
 import (
 	"encoding/json"
 	"github.com/tiptok/gocomm/common"
+	"reflect"
 	"strconv"
 	"strings"
+)
+
+const (
+	splitChar = "."
 )
 
 type (
@@ -36,6 +41,28 @@ func (data *ResponseData) PrintMapDataStruct() string {
 	return data.Data.PrintMapStruct()
 }
 
+func NewMapData() MapData {
+	m := make(map[string]interface{})
+	return m
+}
+func (data MapData) AddFiled(field string, value interface{}) MapData {
+	fields := strings.Split(field, splitChar)
+	var cur MapData
+	cur = data
+	for index, f := range fields {
+		if index != (len(fields) - 1) {
+			if _, ok := cur[f]; !ok {
+				cur[f] = make(map[string]interface{})
+			}
+			cur = cur[f].(map[string]interface{})
+			continue
+		}
+		if _, ok := cur[f]; !ok {
+			cur[f] = value
+		}
+	}
+	return data
+}
 func (data MapData) FindField(field string) (interface{}, bool) {
 	return data.findField(field)
 }
@@ -57,26 +84,57 @@ func (data MapData) Float64(field string) float64 {
 	vFloat, _ := strconv.ParseFloat(string(v.(json.Number)), 10)
 	return vFloat
 }
+func (data MapData) Bool(field string) bool {
+	v := data.MustFindField(field)
+	vb, _ := strconv.ParseBool(string(v.(json.Number)))
+	return vb
+}
 
 // PrintMapStruct 打印 map 的结构
-func (m MapData) PrintMapStruct() string {
-	if m == nil {
+func (data MapData) PrintMapStruct() string {
+	if data == nil {
 		return ""
 	}
-	return common.JsonAssertString(m)
+	return common.JsonAssertString(data)
+}
+
+func (data MapData) GetFiledMap(field string) map[string]interface{} {
+	fields := strings.Split(field, splitChar)
+	cur := data
+	for _, f := range fields {
+		if _, ok := cur[f]; !ok {
+			cur[f] = make(map[string]interface{})
+		}
+		cur = cur[f].(map[string]interface{})
+	}
+	return cur
+}
+func (data MapData) SetFieldMap(fieldMap map[string]interface{}, field string, value interface{}) MapData {
+	if value == nil {
+		return data
+	}
+	v := reflect.ValueOf(value)
+	if !v.IsValid() {
+		return data
+	}
+	if v.IsZero() {
+		return data
+	}
+	fieldMap[field] = value
+	return data
 }
 
 // FindField find key value from MapData
 // eq:key.key1.key2  will find map[key][key1][key2]
-func (m MapData) findField(field string) (interface{}, bool) {
-	if len(m) == 0 {
+func (data MapData) findField(field string) (interface{}, bool) {
+	if len(data) == 0 {
 		return nil, false
 	}
 	if len(field) == 0 {
 		return nil, false
 	}
 	fieldChains := strings.Split(field, ".")
-	var cur interface{} = m[fieldChains[0]]
+	var cur interface{} = data[fieldChains[0]]
 	for i := 1; i < len(fieldChains); i++ {
 		mapFiled, ok := cur.(map[string]interface{})
 		if !ok {

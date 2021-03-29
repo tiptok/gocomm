@@ -61,11 +61,7 @@ func WithConsumeRetryOption(maxRetryTime int, retryDuration int, store MessageSt
 			NextRetryTimeSpan: retryDuration,
 			Store:             store,
 		}
-		if store == nil {
-			options.ConsumeRetryOption.Store = store
-		}
 		if maxRetryTime > 0 {
-			//options.ConsumeRetryOption.Enable = true
 			options.EnableConsumeRetry = true
 		}
 	}
