@@ -2,7 +2,7 @@ package mybeego
 
 import (
 	"encoding/json"
-	"github.com/astaxie/beego/context"
+	"github.com/beego/beego/v2/server/web/context"
 	"github.com/tiptok/gocomm/common"
 	"strconv"
 )

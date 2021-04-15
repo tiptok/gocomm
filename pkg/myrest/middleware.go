@@ -1,8 +1,8 @@
 package myrest
 
 import (
-	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/context"
+	"github.com/beego/beego/v2/server/web"
+	"github.com/beego/beego/v2/server/web/context"
 	"github.com/gin-gonic/gin"
 	"github.com/justinas/alice"
 	"net/http"
@@ -18,7 +18,7 @@ func HandlerFuncUseMiddleware(work http.HandlerFunc, middle ...func(http.Handler
 }
 
 // BeeUseMiddleware beego.HandlerFilter use middleware o intercept http request
-func BeeUseMiddleware(work func(c *context.Context), middle ...func(http.Handler) http.Handler) beego.FilterFunc {
+func BeeUseMiddleware(work func(c *context.Context), middle ...func(http.Handler) http.Handler) web.FilterFunc {
 	chain := midChain(middle...)
 	return func(c *context.Context) {
 		svr := chain.ThenFunc(BeeFuncToHandlerFunc(c, work))
@@ -38,14 +38,14 @@ func midChain(middle ...func(http.Handler) http.Handler) alice.Chain {
 }
 
 // HandlerToBeeFunc  http.Handler convert to beego.FilterFunc
-func HandlerToBeeFunc(h http.Handler) beego.FilterFunc {
+func HandlerToBeeFunc(h http.Handler) web.FilterFunc {
 	return func(c *context.Context) {
 		h.ServeHTTP(c.ResponseWriter, c.Request)
 	}
 }
 
 // HandlerFuncToBeeFunc http.HandlerFunc convert to beego.FilterFunc
-func HandlerFuncToBeeFunc(h http.HandlerFunc) beego.FilterFunc {
+func HandlerFuncToBeeFunc(h http.HandlerFunc) web.FilterFunc {
 	return func(c *context.Context) {
 		h.ServeHTTP(c.ResponseWriter, c.Request)
 	}

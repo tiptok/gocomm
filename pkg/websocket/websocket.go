@@ -3,8 +3,8 @@ package websocket
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/astaxie/beego"
 	"github.com/gorilla/websocket"
+	"github.com/tiptok/gocomm/pkg/log"
 	"github.com/tiptok/gocomm/pkg/mybeego"
 	"reflect"
 	"sync"
@@ -27,24 +27,24 @@ func init() {
 type ReceiveHandler (func([]byte) *mybeego.Message)
 
 type WebsocketConnection struct {
-	Uid         int64
-	AppId       int
-	Conn        *websocket.Conn
-	Echan       chan interface{}
-	Wchan       chan string
-	State       ConnState
+	Uid       int64
+	AppId     int
+	Conn      *websocket.Conn
+	Echan     chan interface{}
+	Wchan     chan string
+	State     ConnState
 	OnReceive ReceiveHandler
-	OnceClose  sync.Once
+	OnceClose sync.Once
 }
 
-func NewWebsocketConnection(conn *websocket.Conn,head *mybeego.RequestHead,recv ReceiveHandler)*WebsocketConnection{
+func NewWebsocketConnection(conn *websocket.Conn, head *mybeego.RequestHead, recv ReceiveHandler) *WebsocketConnection {
 	return &WebsocketConnection{
-		Uid:         head.Uid,
-		AppId:       head.AppId,
-		Conn:        conn,
-		Echan:       make(chan interface{}),
-		Wchan:       make(chan string, 10),
-		State:       Connected,
+		Uid:       head.Uid,
+		AppId:     head.AppId,
+		Conn:      conn,
+		Echan:     make(chan interface{}),
+		Wchan:     make(chan string, 10),
+		State:     Connected,
 		OnReceive: recv,
 	}
 }
@@ -52,6 +52,7 @@ func NewWebsocketConnection(conn *websocket.Conn,head *mybeego.RequestHead,recv 
 //声明了两个cliets 管理 一个通过uid  一个通过conn管理
 // key(*websocket.Conn) value(*WebsocketConnection)
 var Connections *JMap
+
 // key=uid(int64) value(*WebsocketConnection)
 var Clients *JMap
 
@@ -71,12 +72,12 @@ func NewJMap(keyType, valueType reflect.Type) *JMap {
 }
 
 func (this *JMap) PrintConnectStatus() interface{} {
-	beego.Debug("PrintConnectStatus...")
-	beego.Info("============查看websocket连接状态begin============")
+	log.Debug("PrintConnectStatus...")
+	log.Info("============查看websocket连接状态begin============")
 	for i, v := range this.m {
-		beego.Info("key:", i, " conn:", v)
+		log.Info("key:", i, " conn:", v)
 	}
-	beego.Info("============查看websocket连接状态end============")
+	log.Info("============查看websocket连接状态end============")
 	return this.m
 }
 
@@ -108,7 +109,7 @@ func (this *JMap) Put(k interface{}, v interface{}) bool {
 		return false
 	}
 	if connI, ok := Clients.Get(k); ok {
-		beego.Debug("key:", k, "已经连接,先剔除下线")
+		log.Debug("key:", k, "已经连接,先剔除下线")
 		if conn, ok := connI.(*WebsocketConnection); ok {
 			//conn.Conn.WriteMessage(websocket.TextMessage, []byte("您的帐号在其它地方登录,您被剔除下线"))
 			conn.Close()
@@ -166,8 +167,8 @@ func (c *WebsocketConnection) Send(msg string) {
 }
 
 func (c *WebsocketConnection) Close() {
-    c.OnceClose.Do(func(){
-		beego.Info("ws:close----uid:", c.Uid, "appid:", c.AppId, "state:", c.State)
+	c.OnceClose.Do(func() {
+		log.Info("ws:close----uid:", c.Uid, "appid:", c.AppId, "state:", c.State)
 		if c.State == Disconnected {
 			return
 		}
@@ -197,13 +198,13 @@ func doRead(c *WebsocketConnection) {
 		}
 		_, msg, err := c.Conn.ReadMessage()
 		if err != nil {
-			beego.Info(err)
+			log.Info(err)
 			return
 		}
-		beego.Info(fmt.Sprintf("===>ws:recv msg from uid(%d) : %s", c.Uid, string(msg)))
+		log.Info(fmt.Sprintf("===>ws:recv msg from uid(%d) : %s", c.Uid, string(msg)))
 		retMsg := c.OnReceive(msg)
 		retMsgByte, err := json.Marshal(retMsg)
-		beego.Info(fmt.Sprintf("<===ws:send to client uid(%d) : %s", c.Uid, string(retMsgByte)))
+		log.Info(fmt.Sprintf("<===ws:send to client uid(%d) : %s", c.Uid, string(retMsgByte)))
 		c.Send(string(retMsgByte))
 	}
 }
@@ -211,7 +212,7 @@ func doRead(c *WebsocketConnection) {
 func doWrite(c *WebsocketConnection) {
 	defer func() {
 		if err := recover(); err != nil {
-			beego.Error("Recover in doWrite...uid:", c.Uid, "apid:", c.AppId, "err:", err)
+			log.Error("Recover in doWrite...uid:", c.Uid, "apid:", c.AppId, "err:", err)
 		}
 	}()
 	defer func() {
@@ -247,12 +248,12 @@ func SendDataByWs(uid int64, appId int, sendMsg interface{}) bool {
 	}
 	msgByte, err := json.Marshal(msg)
 	if err != nil {
-		beego.Error(err)
+		log.Error(err)
 		return false
 	}
 	key := fmt.Sprintf("%d:%d", uid, appId)
 	if connI, ok := Clients.Get(key); ok {
-		beego.Debug(ok)
+		log.Debug(ok)
 		if conn, ok := connI.(*WebsocketConnection); ok {
 			conn.Send(string(msgByte))
 			return true

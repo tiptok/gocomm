@@ -4,10 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync/atomic"
-	"time"
 
 	"github.com/Shopify/sarama"
-	"github.com/astaxie/beego/logs"
+	"github.com/beego/beego/v2/core/logs"
 )
 
 const loggerName = "kafkalog"
@@ -77,7 +76,10 @@ func (log *KafkaLogger) Init(configstr string) error {
 	}
 	return nil
 }
-func (log *KafkaLogger) WriteMsg(when time.Time, msg string, level int) error {
+func (log *KafkaLogger) WriteMsg(lm *logs.LogMsg) error {
+	//var when time.Time = lm.When
+	var msg string = lm.Msg
+	var level int = lm.Level
 	if log.size >= MaxMessageSize {
 		return ErrorMessageSize
 	}
@@ -101,6 +103,9 @@ func (log *KafkaLogger) Flush() {
 	//for msg,ok:=range log.msg{
 	//  //send msg to kafka
 	//}
+}
+func (log *KafkaLogger) SetFormatter(f logs.LogFormatter) {
+
 }
 
 func (log *KafkaLogger) ConsumeMsg() {

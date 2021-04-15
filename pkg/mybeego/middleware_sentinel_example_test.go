@@ -3,8 +3,8 @@ package mybeego
 import (
 	sentinel "github.com/alibaba/sentinel-golang/api"
 	"github.com/alibaba/sentinel-golang/core/flow"
-	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/context"
+	"github.com/beego/beego/v2/server/web"
+	"github.com/beego/beego/v2/server/web/context"
 	"testing"
 )
 
@@ -14,7 +14,7 @@ func TestExample(t *testing.T) {
 }
 
 func Example() {
-	beego.InsertFilter("/*", beego.BeforeExec, SentinelMiddleware(
+	web.InsertFilter("/*", web.BeforeExec, SentinelMiddleware(
 		WithBlockFallback(
 			func(ctx *context.Context) {
 				ctx.Output.SetStatus(400)
@@ -22,13 +22,13 @@ func Example() {
 				//ctx.Abort(400,"too many request; the quota used up")
 			})),
 	)
-	beego.Get("/test", func(ctx *context.Context) {
+	web.Get("/test", func(ctx *context.Context) {
 		ctx.WriteString("test")
 	})
-	beego.Get("/work", func(ctx *context.Context) {
+	web.Get("/work", func(ctx *context.Context) {
 		ctx.WriteString("work")
 	})
-	beego.Run(":8089")
+	web.Run(":8089")
 }
 
 func initSentinel(t *testing.T) {

@@ -2,12 +2,12 @@ package mybeego
 
 import (
 	"encoding/json"
-	"github.com/astaxie/beego"
+	"github.com/beego/beego/v2/server/web"
 	"github.com/tiptok/gocomm/common"
 )
 
 type BaseController struct {
-	beego.Controller
+	web.Controller
 }
 
 func (controller BaseController) JsonUnmarshal(v interface{}) error {

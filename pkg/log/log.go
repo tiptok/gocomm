@@ -36,3 +36,7 @@ func Panic(args ...interface{}) {
 func Fatal(args ...interface{}) {
 	DefaultLog.Fatal(args...)
 }
+
+func Logger() Log {
+	return DefaultLog
+}

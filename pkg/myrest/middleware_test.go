@@ -2,8 +2,8 @@ package myrest
 
 import (
 	"fmt"
-	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/context"
+	"github.com/beego/beego/v2/server/web"
+	"github.com/beego/beego/v2/server/web/context"
 	"github.com/tiptok/gocomm/pkg/myrest/handler"
 	"github.com/tiptok/gocomm/pkg/myrest/httpx"
 	"log"
@@ -27,8 +27,8 @@ func TestBeegoMiddleware(t *testing.T) {
 			log.Println(m)
 		}
 	}
-	beego.Handler("/work", HandlerFuncUseMiddleware(work))
-	beego.Get("/work2", HandlerToBeeFunc(HandlerFuncUseMiddleware(work)))
+	web.Handler("/work", HandlerFuncUseMiddleware(work))
+	web.Get("/work2", HandlerToBeeFunc(HandlerFuncUseMiddleware(work)))
 	//beego.Get("/v1/work",BeeUseMiddleware(beeWork,
 	//	handler.TracingHandler,
 	//	handler.LogHandler,
@@ -38,10 +38,10 @@ func TestBeegoMiddleware(t *testing.T) {
 	//	handler.LimitBytesHandler(maxByte),
 	//	beeWorkMiddleware("mid1"),beeWorkMiddleware("mid2")),
 	//)
-	beego.Post("/v1/work", bindMiddleware(beeWork))
+	web.Post("/v1/work", bindMiddleware(beeWork))
 
-	beego.BConfig.CopyRequestBody = true
-	beego.Run(":8080")
+	web.BConfig.CopyRequestBody = true
+	web.Run(":8080")
 }
 
 func beeWorkMiddleware(midName string) func(http.Handler) http.Handler {

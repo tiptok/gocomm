@@ -3,13 +3,13 @@ package mybeego
 import (
 	sentinel "github.com/alibaba/sentinel-golang/api"
 	"github.com/alibaba/sentinel-golang/core/base"
-	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/context"
+	"github.com/beego/beego/v2/server/web"
+	"github.com/beego/beego/v2/server/web/context"
 	"net/http"
 )
 
 //Sentinel 拦截器（限流,熔断）
-func SentinelMiddleware(opts ...Option) beego.FilterFunc {
+func SentinelMiddleware(opts ...Option) web.FilterFunc {
 	options := evaluateOptions(opts)
 	return func(ctx *context.Context) {
 		resourceName := ctx.Request.Method + ":" + ctx.Request.RequestURI

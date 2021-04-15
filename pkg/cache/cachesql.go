@@ -13,7 +13,8 @@ type (
 		ObjectToExpire int
 		NoCacheFlag    bool
 	}
-	QueryOption func(options *QueryOptions) *QueryOptions
+	QueryOption  func(options *QueryOptions) *QueryOptions
+	cacheKeyFunc func() string
 )
 
 func NewCachedRepository(c *MultiLevelCache, options ...QueryOption) *CachedRepository {
@@ -28,8 +29,9 @@ func NewDefaultCachedRepository() *CachedRepository {
 	return NewCachedRepository(mlCache)
 }
 
-func (c *CachedRepository) QueryCache(key string, v interface{}, queryFunc LoadFunc, options ...QueryOption) error {
+func (c *CachedRepository) QueryCache(keyFunc cacheKeyFunc, v interface{}, queryFunc LoadFunc, options ...QueryOption) error {
 	option := NewQueryOptions(options...)
+	key := keyFunc()
 	if option.NoCacheFlag || len(key) == 0 {
 		if object, err := queryFunc(); err != nil {
 			return err

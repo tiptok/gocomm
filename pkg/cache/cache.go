@@ -109,6 +109,11 @@ func (c *MultiLevelCache) getObjectWithExpiration(key string, obj interface{}, t
 		}
 	}
 
+	if err != nil {
+		c.debugLog(multiLevelCache, "error:"+err.Error(), key)
+		return err
+	}
+
 	switch reload {
 	case someReload:
 		if item == nil {
@@ -288,6 +293,7 @@ func itemNeedReload(item *Item) bool {
 
 func (c *MultiLevelCache) debugLog(args ...interface{}) {
 	if c.Options.DebugMode && c.Options.Log != nil {
-		c.Options.Log.Debug(args...)
+		logger := c.Options.Log()
+		logger.Debug(args...)
 	}
 }

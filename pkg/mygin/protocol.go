@@ -2,41 +2,42 @@ package mygin
 
 import (
 	"fmt"
-	"github.com/astaxie/beego"
+	"github.com/tiptok/gocomm/pkg/log"
 	"net/http"
 	"time"
 )
 
 const (
-	TOTAL_SWITCH_ON  int = 0 // 通行
-	TOTAL_SWITCH_OFF int = 1 // 关闭，系统停止受理
-	SWITCH_INFO_KEY string ="switch_info"
+	TOTAL_SWITCH_ON  int    = 0 // 通行
+	TOTAL_SWITCH_OFF int    = 1 // 关闭，系统停止受理
+	SWITCH_INFO_KEY  string = "switch_info"
 )
 
 type Message struct {
-	HttpCode int `json:"-"`
-	Errno   int         `json:"errno"`
-	Errmsg  string      `json:"errmsg"`
-	SysTime int64       `json:"sys_time"`
-	Data    interface{} `json:"data"`
+	HttpCode int         `json:"-"`
+	Errno    int         `json:"errno"`
+	Errmsg   string      `json:"errmsg"`
+	SysTime  int64       `json:"sys_time"`
+	Data     interface{} `json:"data"`
 }
 
 var ErrnoMsg map[int]string
+
 //var MessageMap map[int]*Message
 
 func NewMessage(code int) *Message {
 	return &Message{
-		HttpCode:http.StatusOK,
-		Errno:   code,
-		Errmsg:  ErrnoMsg[code],
-		SysTime: time.Now().Unix(),
+		HttpCode: http.StatusOK,
+		Errno:    code,
+		Errmsg:   ErrnoMsg[code],
+		SysTime:  time.Now().Unix(),
 	}
 }
 
 func NewErrMessage(code int, errMsg ...interface{}) *Message {
 	defer func() {
 		if p := recover(); p != nil {
-			beego.Error(p)
+			log.Error(p)
 		}
 	}()
 	msg := NewMessage(code)
@@ -50,7 +51,7 @@ func NewErrMessage(code int, errMsg ...interface{}) *Message {
 	return msg
 }
 
-func(m *Message)SetHttpCode(code int)*Message{
+func (m *Message) SetHttpCode(code int) *Message {
 	m.HttpCode = code
 	return m
 }
@@ -65,5 +66,5 @@ func init() {
 	ErrnoMsg[3] = "系统升级中"
 	ErrnoMsg[4] = "您目前使用的版本过低，无法显示最新的相关内容，请使用响单单APP最新版本。"
 	ErrnoMsg[5] = "描述包含敏感词，请重新编辑"
-	ErrnoMsg[6] ="重复提交，请稍后再试"
-	}
+	ErrnoMsg[6] = "重复提交，请稍后再试"
+}

@@ -1,8 +1,7 @@
 package log
 
 import (
-	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/logs"
+	"github.com/beego/beego/v2/core/logs"
 	"github.com/tiptok/gocomm/config"
 	"path/filepath"
 	"strings"
@@ -28,27 +27,27 @@ func newbeelog(conf config.Logger) Log {
 
 func (this *beegoLog) Debug(args ...interface{}) {
 	//this.log.Debug(args...)
-	beego.Debug(args...)
+	logs.Debug("", args...)
 }
 
 func (this *beegoLog) Info(args ...interface{}) {
-	beego.Info(args...)
+	logs.Info("", args...)
 }
 
 func (this *beegoLog) Warn(args ...interface{}) {
-	beego.Warn(args...)
+	logs.Warn("", args...)
 }
 
 func (this *beegoLog) Error(args ...interface{}) {
-	beego.Error(args...)
+	logs.Error("", args...)
 }
 
 func (this *beegoLog) Panic(args ...interface{}) {
-	beego.Error(args...)
+	logs.Error("", args...)
 }
 
 func (this *beegoLog) Fatal(args ...interface{}) {
-	beego.Error(args...)
+	logs.Error("", args...)
 }
 
 func beegoLogLevelAdapter(logLevel string) int {

@@ -16,7 +16,7 @@ type Options struct {
 	DefaultRedisPool *redis.Pool
 	DeleteChannel    string
 	DebugMode        bool
-	Log              log.Log
+	Log              func() log.Log
 }
 
 type Option func(o *Options)
@@ -50,7 +50,7 @@ func WithDeleteChannel(s string) Option {
 	}
 }
 
-func WithDebugLog(DebugModule bool, log log.Log) Option {
+func WithDebugLog(DebugModule bool, log func() log.Log) Option {
 	return func(o *Options) {
 		o.DebugMode = DebugModule
 		o.Log = log

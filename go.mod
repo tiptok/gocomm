@@ -5,7 +5,7 @@ go 1.12
 require (
 	github.com/Shopify/sarama v1.26.4
 	github.com/alibaba/sentinel-golang v0.5.0
-	github.com/astaxie/beego v1.12.3
+	github.com/beego/beego/v2 v2.0.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/garyburd/redigo v1.6.0
 	github.com/gin-gonic/gin v1.5.0
