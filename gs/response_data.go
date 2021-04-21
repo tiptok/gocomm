@@ -31,6 +31,9 @@ func (data *ResponseData) MustFindField(field string) interface{} {
 func (data *ResponseData) Int(field string) int {
 	return data.Data.Int(field)
 }
+func (data *ResponseData) Int64(field string) int64 {
+	return data.Data.Int64(field)
+}
 func (data *ResponseData) String(field string) string {
 	return data.Data.String(field)
 }
@@ -74,6 +77,11 @@ func (data MapData) Int(field string) int {
 	v := data.MustFindField(field)
 	vInt, _ := strconv.Atoi(string(v.(json.Number)))
 	return vInt
+}
+func (data MapData) Int64(field string) int64 {
+	v := data.MustFindField(field)
+	vInt, _ := strconv.Atoi(string(v.(json.Number)))
+	return int64(vInt)
 }
 func (data MapData) String(field string) string {
 	v := data.MustFindField(field)

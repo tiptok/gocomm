@@ -52,39 +52,3 @@ func TestProducer(t *testing.T) {
 		}
 	}
 }
-
-//type PgMessageRepository struct {
-//	transactionContext *transaction.TransactionContext
-//}
-//
-//func (repository *PgMessageRepository) SaveMessage(message *models.Message) error {
-//	sql := `insert into sys_message_produce (id,topic,value,msg_time,status)values(?,?,?,?,?)`
-//	_, err := repository.transactionContext.PgDd.Exec(sql, message.Id, message.Topic, utils.JsonAssertString(message), message.MsgTime, int64(models.UnFinished))
-//	return err
-//}
-//func (repository *PgMessageRepository) FindNoPublishedStoredMessages() ([]*models.Message, error) {
-//	sql := `select value from sys_message_produce where status=?`
-//	var values []string
-//	_, e := repository.transactionContext.PgDd.Query(&values, sql, int64(models.UnFinished))
-//	var messages = make([]*models.Message, 0)
-//	if e != nil {
-//		return messages, nil
-//	}
-//	for _, v := range values {
-//		item := &models.Message{}
-//		utils.JsonUnmarshal(v, item)
-//		if item.Id != 0 {
-//			messages = append(messages, item)
-//		}
-//	}
-//	return messages, nil
-//}
-//func (repository *PgMessageRepository) FinishMessagesStatus(messageIds []int64, finishStatus int) error {
-//	_, err := repository.transactionContext.PgDd.Exec("update sys_message_produce set status=? where id in (?)", finishStatus, pg.In(messageIds))
-//	return err
-//}
-//func NewPgMessageRepository(transactionContext *transaction.TransactionContext) *PgMessageRepository {
-//	return &PgMessageRepository{
-//		transactionContext: transactionContext,
-//	}
-//}

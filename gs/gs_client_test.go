@@ -19,13 +19,12 @@ const (
 	AuthLogin = "AuthLogin"
 )
 
-var c = NewGateWayClient("http://mmm-godevp-dev.fjmaimaimai.com/v1")
+var c = NewGateWayClient("http://mmm-godevp-dev.fjmaimaimai.com/v1", WithHeader(map[string]interface{}{"Authorization": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IjEiLCJwYXNzd29yZCI6IjdjNGE4ZDA5Y2EzNzYyYWY2MWU1OTUyMDk0M2RjMjY0OTRmODk0MWIiLCJhZGREYXRhIjp7IlVzZXJOYW1lIjoidGlwdG9rIn0sImV4cCI6MTYwNTE1MzQwMiwiaXNzIjoiand0In0.BaGz73D5YSf98jXs-HATO8Ah8Thm415N8UAerlbNt48"}))
 
 func init() {
-	c.WithGlobalHeader(map[string]interface{}{"Authorization": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IjEiLCJwYXNzd29yZCI6IjdjNGE4ZDA5Y2EzNzYyYWY2MWU1OTUyMDk0M2RjMjY0OTRmODk0MWIiLCJhZGREYXRhIjp7IlVzZXJOYW1lIjoidGlwdG9rIn0sImV4cCI6MTYwNTE1MzQwMiwiaXNzIjoiand0In0.BaGz73D5YSf98jXs-HATO8Ah8Thm415N8UAerlbNt48"})
 	c.AddApi(UserPost, "/user", http.MethodPost)
 	c.AddApi(UserPut, "/user/%v", http.MethodPut)
-	c.AddApi(UserGet, "/user/%v", http.MethodGet)
+	c.AddApi(UserGet, "/user/:id", http.MethodGet)
 	c.AddApi(UserDelete, "/user/%v", http.MethodDelete)
 	c.AddApi(UserList, "/user", http.MethodGet)
 
@@ -33,7 +32,7 @@ func init() {
 }
 
 func TestGatewayPost(t *testing.T) {
-	request := c.NewRequest(AuthLogin, WithJsonObject(map[string]interface{}{"username": "18860183051", "password": "7c4a8d09ca3762af61e59520943dc26494f8941b"}))
+	request, _ := c.NewRequest(AuthLogin, WithJsonObject(map[string]interface{}{"username": "18860183051", "password": "7c4a8d09ca3762af61e59520943dc26494f8941b"}))
 	var responseData *ResponseData
 	err := request.ToJSON(&responseData)
 	if err != nil {
@@ -45,7 +44,7 @@ func TestGatewayPost(t *testing.T) {
 }
 
 func TestGatewayGetList(t *testing.T) {
-	request := c.NewRequest(UserList, WithPathQuery(map[string]interface{}{"pageNumber": 1, "pageSize": 20}))
+	request, _ := c.NewRequest(UserList, WithPathQuery(map[string]interface{}{"pageNumber": 1, "pageSize": 20}))
 	var responseData *ResponseData
 	err := request.ToJSON(&responseData)
 	if err != nil {
@@ -60,7 +59,7 @@ func TestGatewayGetList(t *testing.T) {
 }
 
 func TestGatewayGet(t *testing.T) {
-	request := c.NewRequest(UserGet, WithPathParam(map[string]interface{}{"id": 1}))
+	request, _ := c.NewRequest(UserGet, WithPathParam(map[string]interface{}{"id": 1}))
 	var responseData *ResponseData
 	err := request.ToJSON(&responseData)
 	if err != nil {
@@ -74,7 +73,7 @@ func TestGatewayGet(t *testing.T) {
 }
 
 func TestGatewayPut(t *testing.T) {
-	request := c.NewRequest(UserPut, WithPathParam(1), WithJsonObject(map[string]interface{}{"name": "tip111"}))
+	request, _ := c.NewRequest(UserPut, WithPathParam(1), WithJsonObject(map[string]interface{}{"name": "tip111"}))
 	var responseData *ResponseData
 	err := request.ToJSON(&responseData)
 	if err != nil {
