@@ -21,23 +21,29 @@ type (
 	MapData map[string]interface{}
 )
 
-func (data *ResponseData) FindField(field string) (interface{}, bool) {
+func (data *ResponseData) FindField(fields ...string) (interface{}, bool) {
+	field := formatFields(fields...)
 	return data.Data.FindField(field)
 }
-func (data *ResponseData) MustFindField(field string) interface{} {
+func (data *ResponseData) MustFindField(fields ...string) interface{} {
+	field := formatFields(fields...)
 	v, _ := data.Data.FindField(field)
 	return v
 }
-func (data *ResponseData) Int(field string) int {
+func (data *ResponseData) Int(fields ...string) int {
+	field := formatFields(fields...)
 	return data.Data.Int(field)
 }
-func (data *ResponseData) Int64(field string) int64 {
+func (data *ResponseData) Int64(fields ...string) int64 {
+	field := formatFields(fields...)
 	return data.Data.Int64(field)
 }
-func (data *ResponseData) String(field string) string {
+func (data *ResponseData) String(fields ...string) string {
+	field := formatFields(fields...)
 	return data.Data.String(field)
 }
-func (data *ResponseData) Float64(field string) float64 {
+func (data *ResponseData) Float64(fields ...string) float64 {
+	field := formatFields(fields...)
 	return data.Data.Float64(field)
 }
 func (data *ResponseData) PrintMapDataStruct() string {
@@ -70,7 +76,10 @@ func (data MapData) FindField(field string) (interface{}, bool) {
 	return data.findField(field)
 }
 func (data MapData) MustFindField(field string) interface{} {
-	v, _ := data.findField(field)
+	v, ok := data.findField(field)
+	if !ok {
+		return nil
+	}
 	return v
 }
 func (data MapData) Int(field string) int {
@@ -144,11 +153,24 @@ func (data MapData) findField(field string) (interface{}, bool) {
 	fieldChains := strings.Split(field, ".")
 	var cur interface{} = data[fieldChains[0]]
 	for i := 1; i < len(fieldChains); i++ {
-		mapFiled, ok := cur.(map[string]interface{})
-		if !ok {
+		switch t := cur.(type) {
+		case map[string]interface{}:
+			cur = t[fieldChains[i]]
+		case map[interface{}]interface{}:
+			cur = t[fieldChains[i]]
+		default:
 			return nil, false
 		}
-		cur = mapFiled[fieldChains[i]]
 	}
 	return cur, true
+}
+
+func formatFields(field ...string) string {
+	if len(field) == 0 {
+		return ""
+	}
+	if len(field) == 1 {
+		return field[0]
+	}
+	return strings.Join(field, splitChar)
 }

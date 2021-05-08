@@ -273,8 +273,8 @@ func (c *MultiLevelCache) RegisterCache(cache ...Cache) {
 	}
 }
 func (c *MultiLevelCache) registerCache(cacheLink *MLCache, cache Cache) error {
-	atomic.AddInt32(&c.len, 1)
 	if cacheLink.Next == nil {
+		atomic.AddInt32(&c.len, 1)
 		cacheLink.Next = &MLCache{
 			Current: cache,
 		}
