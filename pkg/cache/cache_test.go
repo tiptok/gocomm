@@ -1,77 +1,116 @@
 package cache
 
 import (
-	"fmt"
+	"github.com/stretchr/testify/assert"
 	"github.com/tiptok/gocomm/config"
+	"github.com/tiptok/gocomm/pkg/cache/gzcache"
 	memory "github.com/tiptok/gocomm/pkg/cache/memory"
 	redis_cache "github.com/tiptok/gocomm/pkg/cache/redis_cache"
-	"github.com/tiptok/gocomm/pkg/log"
 	"github.com/tiptok/gocomm/pkg/redis"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
 
-// 测试缓存
-func TestCache(t *testing.T) {
-	redis.Init(config.Redis{Addr: "127.0.0.1:6379", Password: "123456", MaxIdle: 4})
-	InitDefault(WithDefaultRedisPool(redis.GetRedisPool()))
-	v, e := getStruct(100)
-	if e != nil {
-		t.Fatal(e)
+/*script
+go test -bench=. -v pkg/cache/cache_test.go pkg/cache/cache.go pkg/cache/option.go pkg/cache/utils.go pkg/cache/multi_level_cache.go
+*/
+const (
+	MemoryRedisCache = iota + 1
+	RedisCacheFlag
+	MemoryCache
+	GzCache
+)
+
+const CacheType = GzCache
+
+var (
+	count       int32
+	redisHost   = "127.0.0.1:6379"
+	redisPasswd = ""
+)
+
+func initInstance() {
+	switch CacheType {
+	case MemoryRedisCache:
+		redis.Init(config.Redis{Addr: redisHost, Password: redisPasswd, MaxIdle: 4})
+		InitDefault(WithDefaultRedisPool(redis.GetRedisPool()))
+	case RedisCacheFlag:
+		redis.Init(config.Redis{Addr: redisHost, Password: redisPasswd, MaxIdle: 4})
+		mlCache = NewMultiLevelCacheNew(WithDefaultRedisPool(redis.GetRedisPool()))
+		mlCache.RegisterCache(
+			redis_cache.NewRedisCache(mlCache.Options.DefaultRedisPool),
+		)
+	case MemoryCache:
+		redis.Init(config.Redis{Addr: redisHost, Password: redisPasswd, MaxIdle: 4})
+		mlCache = NewMultiLevelCacheNew(WithDefaultRedisPool(redis.GetRedisPool()))
+		mlCache.RegisterCache(
+			memory.NewMemCache(mlCache.Options.CleanInterval),
+		)
+	case GzCache:
+		InitMultiLevelCache().
+			RegisterCache(gzcache.NewNodeCache(redisHost, redisPasswd))
+	default:
 	}
-	log.Info(v)
+	count = 0
 }
 
 // 测试并行情况
-func TestConcurrent(t *testing.T) {
-	redis.Init(config.Redis{Addr: "127.0.0.1:6379", Password: "123456", MaxIdle: 4})
-	InitDefault(WithDefaultRedisPool(redis.GetRedisPool()))
-	t.Log("开始")
+func TestCacheGetConcurrent(t *testing.T) {
+	initInstance()
 	for i := 1; i <= 10; i++ {
-		doConcurrent()
-		time.Sleep(time.Second * 10)
+		doConcurrent(t)
 	}
-	t.Log("结束")
 }
-func doConcurrent() {
+
+func doConcurrent(t *testing.T) {
 	key := GetKey("partner", "order", "statics", 1)
 	var wg sync.WaitGroup
-	for i := 1; i <= 10; i++ {
+	for i := 1; i <= 1000; i++ {
 		go func(index int) {
 			wg.Add(1)
 			defer wg.Done()
 			var target *TestStruct = &TestStruct{}
-			err := GetObject(key, target, 30, newTestStruct)
-			fmt.Println(fmt.Sprintf("%v get : %v  error:%v", index, target, err))
+			GetObject(key, target, 30, newTestStruct)
+			//fmt.Println(fmt.Sprintf("%v get : %v  error:%v", index, target, err))
+			assert.Equal(t, target.Name, "tiptok")
 		}(i)
 	}
 	wg.Wait()
 }
 
 // 测试过期
-func TestExpire(t *testing.T) {
-	redis.Init(config.Redis{Addr: "127.0.0.1:6379", Password: "123456", MaxIdle: 4})
-	InitDefault(WithDefaultRedisPool(redis.GetRedisPool()))
-	key := GetKey("partner", "order", "statics", 1)
+func TestCacheExpire(t *testing.T) {
+	initInstance()
+	key := GetKey("partner", "order", "statics", time.Now().Unix())
 	var target *TestStruct = &TestStruct{}
-	var ttl = 10
-	if err := GetObject(key, target, ttl, newTestStruct); err != nil {
+	var ttl = 1
+	var count int32
+	createInstance := func() (interface{}, error) {
+		value := &TestStruct{
+			Id:   int(time.Now().Unix()),
+			Name: "tiptok",
+		}
+		atomic.AddInt32(&count, 1)
+		return value, nil
+	}
+	if err := GetObject(key, target, ttl, createInstance); err != nil {
 		t.Fatal(err)
 	}
-	time.Sleep(time.Second * 11)
-	if err := GetObject(key, target, ttl, newTestStruct); err != nil {
+	time.Sleep(time.Second * 1)
+	if err := GetObject(key, target, ttl, createInstance); err != nil {
 		t.Fatal(err)
 	}
+	assert.Equal(t, int32(2), count)
 }
 
 // 测试默认 内存+redis缓存 获取缓存对象
-func TestMultiLevelCache_GetObject(t *testing.T) {
-	redis.Init(config.Redis{Addr: "127.0.0.1:6379", Password: "123456", MaxIdle: 4})
-	InitDefault(WithDefaultRedisPool(redis.GetRedisPool()))
-	key := GetKey("partner", "order", "statics", 1)
+func TestCacheGetExpire(t *testing.T) {
+	initInstance()
+	key := GetKey("partner", "order", "statics", time.Now().Unix())
 	var target *TestStruct = &TestStruct{}
-	if err := GetObject(key, target, 2, newTestStruct); err != nil {
+	if err := GetObject(key, target, 1, newTestStruct); err != nil {
 		t.Fatal(err)
 	}
 	var target2 = &TestStruct{}
@@ -82,35 +121,31 @@ func TestMultiLevelCache_GetObject(t *testing.T) {
 	if item.Expire() {
 		t.Fatal("get object expire")
 	}
-	time.Sleep(2 * time.Second)
+	time.Sleep(1 * time.Second)
 	if !item.Expire() {
 		t.Fatal("get object has expire")
 	}
 }
 
 // 测试默认 内存+redis缓存 删除缓存对象
-func TestMultiLevelCacheNew_Delete(t *testing.T) {
-	redis.Init(config.Redis{Addr: "127.0.0.1:6379", Password: "123456", MaxIdle: 4})
-	InitDefault(WithDefaultRedisPool(redis.GetRedisPool()))
-	key := GetKey("partner", "order", "statics", 1)
+func TestCacheDelete(t *testing.T) {
+	initInstance()
+	key := GetKey("partner", "order", "statics", time.Now().Unix())
 	var target *TestStruct = &TestStruct{}
 	if err := GetObject(key, target, 100, newTestStruct); err != nil {
 		t.Fatal(err)
 	}
-	time.Sleep(time.Second * 20)
 	if err := Delete(key); err != nil {
 		t.Fatal(err)
 	}
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Millisecond * 50)
+	GetObject(key, target, 100, newTestStruct)
+	assert.Equal(t, int32(2), count)
 }
 
 // 测试redis缓存
-func TestMultiLevelCache_Redis(t *testing.T) {
-	redis.Init(config.Redis{Addr: "127.0.0.1:6379", Password: "123456", MaxIdle: 4})
-	mlCache = NewMultiLevelCacheNew(WithDefaultRedisPool(redis.GetRedisPool()))
-	mlCache.RegisterCache(
-		redis_cache.NewRedisCache(mlCache.Options.DefaultRedisPool),
-	)
+func TestCacheGet(t *testing.T) {
+	initInstance()
 	key := GetKey("partner", "order", "statics", 1)
 	var target *TestStruct = &TestStruct{}
 	if err := mlCache.GetObject(key, target, 100, newTestStruct); err != nil {
@@ -126,39 +161,17 @@ func TestMultiLevelCache_Redis(t *testing.T) {
 	}
 }
 
-// 测试内存缓存
-func TestMultiLevelCache_Memory(t *testing.T) {
-	redis.Init(config.Redis{Addr: "127.0.0.1:6379", Password: "123456", MaxIdle: 4})
-	mlCache = NewMultiLevelCacheNew(WithDefaultRedisPool(redis.GetRedisPool()))
-	mlCache.RegisterCache(
-		memory.NewMemCache(mlCache.Options.CleanInterval),
-	)
-	key := GetKey("partner", "order", "statics", 1)
-	var target *TestStruct = &TestStruct{}
-	if err := mlCache.GetObject(key, target, 100, newTestStruct); err != nil {
-		t.Fatal(err)
-	}
-	var target2 = &TestStruct{}
-	item, err := mlCache.mlCache.Current.Get(key, target2)
-	if err != nil {
-		t.Fatal("memory get object error")
-	}
-	if item.Expire() {
-		t.Fatal("memory get object expire")
-	}
-}
-
-// 批量测试
-func BenchmarkMultiLevelCacheNew_Get(b *testing.B) {
-	redis.Init(config.Redis{Addr: "127.0.0.1:6379", Password: "123456", MaxIdle: 4})
-	InitDefault(WithDefaultRedisPool(redis.GetRedisPool()))
-	key := GetKey("partner", "order", "statics", 1)
+// Benchmark MultiLevelCache  Memory + Redis
+func BenchmarkCacheGet(b *testing.B) {
+	initInstance()
+	key := GetKey("partner", "order", "statics", time.Now().Unix())
 	var target *TestStruct = &TestStruct{}
 	var ttl = 10
 	for i := 0; i < b.N; i++ {
 		if err := GetObject(key, target, ttl, newTestStruct); err != nil {
-			b.Fatal(err)
+			assert.Error(b, err)
 		}
+		//assert.Equal(b,"tiptok",target.Name)
 	}
 }
 
@@ -188,7 +201,6 @@ func getStruct(id uint32) (*TestStruct, error) {
 		}()
 	})
 	if err != nil {
-		log.Error(err)
 		return nil, err
 	}
 	return &v, nil
@@ -196,8 +208,9 @@ func getStruct(id uint32) (*TestStruct, error) {
 func newTestStruct() (interface{}, error) {
 	value := &TestStruct{
 		Id:   int(time.Now().Unix()),
-		Name: "hello tip tok",
+		Name: "tiptok",
 	}
-	fmt.Println("create instance...", value)
+	atomic.AddInt32(&count, 1)
+	//fmt.Println("create instance...", value)
 	return value, nil
 }
