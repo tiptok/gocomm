@@ -15,6 +15,7 @@ type (
 	}
 	QueryOption  func(options *QueryOptions) *QueryOptions
 	cacheKeyFunc func() string
+	primaryKeyFunc func(obj interface{})string
 )
 
 func NewCachedRepository(c *MultiLevelCache, options ...QueryOption) *CachedRepository {
@@ -58,6 +59,25 @@ func (c *CachedRepository) Query(queryFunc LoadFunc, deleteKeys ...string) (inte
 		}
 	}
 	return ret, err
+}
+
+func (c *CachedRepository) QueryUniqueIndexCache(keyFunc cacheKeyFunc,v interface{},queryPrimaryKeyFunc LoadFunc, queryFunc LoadFunc, options ...QueryOption) error {
+	option := NewQueryOptions(options...)
+	key := keyFunc()
+	if option.NoCacheFlag || len(key) == 0 {
+		if object, err := queryFunc(); err != nil {
+			return err
+		} else {
+			Clone(object, v)
+		}
+		return nil
+	}
+	// 通过 queryPrimaryKeyFunc 先查primaryKey,再用primaryKey查询缓存记录
+	var primaryKey string
+	if err:=c.mlCache.GetObject(key, &primaryKey, -1, queryPrimaryKeyFunc);err!=nil{
+		return err
+	}
+	return c.mlCache.GetObject(primaryKey, v, option.ObjectToExpire, queryFunc)
 }
 
 func WithNoCacheFlag() QueryOption {
