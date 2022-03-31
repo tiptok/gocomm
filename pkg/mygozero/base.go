@@ -3,9 +3,9 @@ package mygozero
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/tal-tech/go-zero/core/jsonx"
-	"github.com/tal-tech/go-zero/rest/httpx"
 	"github.com/tiptok/gocomm/common"
+	"github.com/zeromicro/go-zero/core/jsonx"
+	"github.com/zeromicro/go-zero/rest/httpx"
 	"io"
 	"io/ioutil"
 	"net/http"

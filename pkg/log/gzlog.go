@@ -2,7 +2,7 @@ package log
 
 import (
 	"fmt"
-	"github.com/tal-tech/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/logx"
 )
 
 type GzLog struct {

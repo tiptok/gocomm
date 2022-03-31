@@ -1,7 +1,7 @@
 package mygozero
 
 import (
-	"github.com/tal-tech/go-zero/rest"
+	"github.com/zeromicro/go-zero/rest"
 	"net/http"
 )
 

@@ -1,9 +1,9 @@
 package local
 
 import (
-	"github.com/tal-tech/go-zero/core/stores/redis"
 	"github.com/tiptok/gocomm/common"
 	"github.com/tiptok/gocomm/pkg/broker/models"
+	"github.com/zeromicro/go-zero/core/stores/redis"
 	"sync/atomic"
 	"time"
 )
@@ -51,7 +51,7 @@ func (store *RedisMessageStore) StoreMessage(msg *models.RetryMessage) error {
 
 func NewRedisMessageStore(serverFlag string, redisAddr, redisPass string) *RedisMessageStore {
 	return &RedisMessageStore{
-		redis:      redis.NewRedis(redisAddr, redis.NodeType, redisPass),
+		redis:      redis.New(redisAddr, redis.WithPass(redisPass)),
 		serverFlag: serverFlag,
 		normalKey:  "consume:message_retry:" + serverFlag,
 		errorKey:   "consume:message_retry_error:" + serverFlag,

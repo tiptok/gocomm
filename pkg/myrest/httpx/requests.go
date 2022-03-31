@@ -1,9 +1,9 @@
 package httpx
 
 import (
-	"github.com/tal-tech/go-zero/core/mapping"
 	"github.com/tiptok/gocomm/common"
 	"github.com/tiptok/gocomm/pkg/myrest/internal/context"
+	"github.com/zeromicro/go-zero/core/mapping"
 	"io"
 	"net/http"
 	"strings"
