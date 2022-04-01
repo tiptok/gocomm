@@ -35,6 +35,8 @@ type Cache interface {
 
 type LoadFunc func() (interface{}, error)
 
+type keyFunc func(interface{}) string
+
 type MultiLevelCache struct {
 	Options *Options
 
@@ -132,6 +134,43 @@ func (c *MultiLevelCache) getObjectWithExpiration(key string, obj interface{}, t
 	return Clone(item.Object, obj)
 }
 
+//GetCacheWithoutLoad  get cache from multilevelCache
+func (c *MultiLevelCache) GetCacheWithoutLoad(key string, obj interface{}) (bool, error) {
+	var (
+		item  *Item
+		err   error
+		found bool = false
+	)
+	if c.mlCache == nil {
+		return found, fmt.Errorf("mlCache is nil")
+	}
+	if c.mlCache.Current == nil {
+		return found, fmt.Errorf("mlCache is nil")
+	}
+	cacheLink := c.mlCache
+	deep := -1
+	for {
+		if cacheLink == nil || cacheLink.Current == nil {
+			break
+		}
+		cache := cacheLink.Current
+		if item, err = cache.Get(key, obj); err != nil || item == nil {
+			deep++
+			cacheLink = cacheLink.Next
+			continue
+		}
+		if item.Expire() {
+			deep++
+			cacheLink = cacheLink.Next
+			continue
+		} else {
+			found = true
+			break
+		}
+	}
+	return found, nil
+}
+
 //Load  get cache if expire or not exist , create new cache to multiLevelCache
 func (c *MultiLevelCache) Load(key string, obj interface{}, ttl int, f LoadFunc, deep int) error {
 	mux := c.GetMutex(key)
@@ -162,6 +201,40 @@ func (c *MultiLevelCache) Load(key string, obj interface{}, ttl int, f LoadFunc,
 	}
 
 	return c.TraverseCache(deep, func(c Cache) error {
+		return c.Set(key, it)
+	})
+}
+
+//LoadAndResponse  get cache if expire or not exist , create new cache to multiLevelCache
+func (c *MultiLevelCache) LoadAndResponse(key string, obj interface{}, ttl int, f LoadFunc, deep int) (interface{}, error) {
+	mux := c.GetMutex(key)
+	mux.Lock()
+	defer func() {
+		mux.Unlock()
+		c.ReleaseMutex(key)
+	}()
+	//if v, err := c.mlCache.Current.Get(key, obj); err != nil || !itemNeedReload(v) {
+	//	if v != nil {
+	//		err = Clone(v.Object, obj)
+	//	}
+	//	return err
+	//}
+	o, err := f()
+	if err != nil {
+		return o, err
+	}
+
+	it := NewItem(o, ttl)
+	it.MarshData, _ = json.Marshal(it)
+	if err = Clone(o, obj); err != nil {
+		return o, err
+	}
+
+	if c.Options.DebugMode {
+		c.debugLog(multiLevelCache, "store cache :", key, common.JsonAssertString(obj))
+	}
+
+	return o, c.TraverseCache(deep, func(c Cache) error {
 		return c.Set(key, it)
 	})
 }
