@@ -2,28 +2,34 @@ package idgen
 
 import (
 	"fmt"
-	"github.com/sony/sonyflake"
 )
 
-var sf *sonyflake.Sonyflake
+var gsf *Sonyflake // github.com/sony/sonyflake v1.0.0
 
 func init() {
-	st := sonyflake.Settings{
+	st := Settings{
 		MachineID: getMachineId,
 	}
-	sf = sonyflake.NewSonyflake(st)
+	gsf = NewSonyflake(st)
 }
 
 func getMachineId() (uint16, error) {
 	// TODO
-	return 1, nil
+	return uint16(1), nil
+}
+
+func Init(midGenFunc func() (uint16, error)) {
+	st := Settings{
+		MachineID: midGenFunc,
+	}
+	gsf = NewSonyflake(st)
 }
 
 // Next generates next id as an uint64
 func Next() (id int64) {
 	var i uint64
-	if sf != nil {
-		i, _ = sf.NextID()
+	if gsf != nil {
+		i, _ = gsf.NextID()
 		id = int64(i)
 	}
 	return

@@ -167,12 +167,14 @@ func BenchmarkCacheGet(b *testing.B) {
 	key := GetKey("partner", "order", "statics", time.Now().Unix())
 	var target *TestStruct = &TestStruct{}
 	var ttl = 10
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		if err := GetObject(key, target, ttl, newTestStruct); err != nil {
 			assert.Error(b, err)
 		}
 		//assert.Equal(b,"tiptok",target.Name)
 	}
+	b.StopTimer()
 }
 
 // 缓存对象

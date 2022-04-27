@@ -17,7 +17,7 @@ type memcache struct {
 	janitor *janitor
 }
 
-// memcache will scan all objects per clean interval, and delete expired key.
+// NewMemCache memcache will scan all objects per clean interval, and delete expired key.
 func NewMemCache(ci time.Duration) *MemCache {
 	c := &memcache{
 		items: sync.Map{},
