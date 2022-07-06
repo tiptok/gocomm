@@ -37,17 +37,19 @@ func initSentinel(t *testing.T) {
 		t.Fatalf("Unexpected error: %+v", err)
 	}
 
-	_, err = flow.LoadRules([]*flow.FlowRule{
+	_, err = flow.LoadRules([]*flow.Rule{
 		{
-			Resource:        "GET:/test",
-			MetricType:      flow.QPS,
-			Count:           100,
+			Resource: "GET:/test",
+			//Type:      flow.QPS,
+			//Count:           100,
+			Threshold:       100,
 			ControlBehavior: flow.Reject,
 		},
 		{
-			Resource:        "GET:/work",
-			MetricType:      flow.QPS,
-			Count:           0,
+			Resource: "GET:/work",
+			//MetricType:      flow.QPS,
+			//Count:           0,
+			Threshold:       100,
 			ControlBehavior: flow.Reject,
 		},
 	})

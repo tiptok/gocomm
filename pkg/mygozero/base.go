@@ -18,7 +18,7 @@ type RestBase struct {
 func (controller *RestBase) JsonUnmarshal(r *http.Request, v interface{}) error {
 	var reader io.Reader
 	var buf *bytes.Buffer = bytes.NewBuffer(nil)
-	if r.ContentLength > 0 && strings.Contains(r.Header.Get(httpx.ContentType), httpx.ApplicationJson) {
+	if r.ContentLength > 0 && strings.Contains(r.Header.Get(httpx.ContentType), httpx.JsonContentType) {
 		read := io.TeeReader(r.Body, buf)
 		reader = io.LimitReader(read, 8<<20) //8M
 		r.Body = ioutil.NopCloser(buf)
